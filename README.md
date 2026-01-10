@@ -1,15 +1,6 @@
 Openchat é aonde voce fala oque voce nunca pode falar com outras IAs
 é o primeiro chat Open-Source aonde voce pode conversar com uma IA sem restriçoes
 
-
-
-
-
-
-
-
-
-
 Se o OpenChat te ajudou, considere:
 - ⭐ Dar uma estrela no repositório
 - 🐛 Reportar bugs e sugerir melhorias
