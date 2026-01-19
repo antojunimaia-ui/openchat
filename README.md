@@ -15,7 +15,7 @@ Se o OpenChat te ajudou, considere:
 
 **"Não é apenas uma IA, é SUA IA - completamente livre!"**
 
-Desenvolvido com ❤️ por Junior_7i | Versão 1.0.1 Beta
+Desenvolvido com ❤️ por Junior_7i | Versão 1.1.2 Beta
 
 </div>
 
