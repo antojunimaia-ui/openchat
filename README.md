@@ -6,6 +6,21 @@ Nada de sistemas fechados, nada de regras opacas. Você conversa, cria e explora
 
 O OpenChat nasceu com um objetivo claro: garantir liberdade de conhecimento e permitir que qualquer pessoa tenha autonomia total sobre a própria experiência. Aqui, a conversa é sua. Sempre.
 
+para usar o openchat, clone o repositorio:
+```
+git clone https://github.com/antojunimaia-ui/openchat.git
+```
+
+apos clonar, entre na pasta do repositorio e execute:
+```
+npm install
+```
+
+apos instalar as dependencias, execute o openchat usando o seguinte comando:
+```
+npm run dev
+```
+
 Se o OpenChat te ajudou, considere:
 - ⭐ Dar uma estrela no repositório
 - 🐛 Reportar bugs e sugerir melhorias
