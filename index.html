@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenChat</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="voice-call-styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-javascript.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-python.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-html.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-css.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-json.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-sql.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-xml.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-markdown.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/theme-monokai.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/theme-github_dark.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Custom Titlebar -->
+        <div class="titlebar">
+            <div class="titlebar-drag-region">
+                <button class="titlebar-button sidebar-toggle-btn" id="sidebarToggleBtn"
+                    title="Toggle Sidebar (Ctrl+S)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                    </svg>
+                </button>
+                <div class="titlebar-title">OpenChat</div>
+            </div>
+            <div class="titlebar-controls">
+                <button class="titlebar-button minimize-btn" id="minimizeBtn">
+                    <svg width="12" height="12" viewBox="0 0 12 12">
+                        <rect x="0" y="5" width="12" height="2" fill="currentColor" />
+                    </svg>
+                </button>
+                <button class="titlebar-button maximize-btn" id="maximizeBtn">
+                    <svg width="12" height="12" viewBox="0 0 12 12">
+                        <rect x="1" y="1" width="10" height="10" stroke="currentColor" stroke-width="1.5" fill="none" />
+                    </svg>
+                </button>
+                <button class="titlebar-button close-btn" id="closeBtn">
+                    <svg width="12" height="12" viewBox="0 0 12 12">
+                        <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.5" />
+                        <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.5" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Glow Effects -->
+        <div class="glow-ball glow-top"></div>
+        <div class="glow-ball glow-middle"></div>
+        <div class="glow-ball glow-bottom"></div>
+
+        <!-- Snow Effect -->
+        <div class="snow-container" id="snowContainer"></div>
+
+        <!-- ChatGPT Style Sidebar - Always Open -->
+        <div class="chatgpt-sidebar open" id="chatgptSidebar">
+
+            <!-- New Chat Button -->
+            <button class="new-chat-button" id="newChatBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5V19"></path>
+                    <path d="M5 12H19"></path>
+                </svg>
+                <span>Novo chat</span>
+            </button>
+
+            <!-- Architect Button -->
+            <button class="architect-button" id="architectBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Arquiteto</span>
+            </button>
+
+            <!-- Chat History Area -->
+            <div class="chat-history-area">
+                <div class="chat-history">
+                    <!-- Chat items will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Settings Button -->
+            <button class="settings-button" id="settingsBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
+                <span>Configurações</span>
+            </button>
+        </div>
+
+        <!-- Architect Intro Modal -->
+        <div class="architect-intro-modal-overlay" id="architectIntroModalOverlay">
+            <div class="architect-intro-modal">
+                <div class="architect-intro-header">
+                    <div class="architect-intro-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                    </div>
+                    <h2>Modo Arquiteto</h2>
+                    <p class="architect-intro-subtitle">Colabore com a IA para construir suas ideias</p>
+                </div>
+                <div class="architect-intro-body">
+                    <div class="architect-intro-content">
+                        <div class="architect-feature">
+                            <div class="architect-feature-icon">📝</div>
+                            <div class="architect-feature-text">
+                                <h4>PRD Colaborativo</h4>
+                                <p>Crie e refine documentos de requisitos com ajuda da IA</p>
+                            </div>
+                        </div>
+                        <div class="architect-feature">
+                            <div class="architect-feature-icon">🔄</div>
+                            <div class="architect-feature-text">
+                                <h4>Edição em Tempo Real</h4>
+                                <p>A IA pode ler e modificar seu documento conforme a conversa evolui</p>
+                            </div>
+                        </div>
+                        <div class="architect-feature">
+                            <div class="architect-feature-icon">💡</div>
+                            <div class="architect-feature-text">
+                                <h4>Sugestões Inteligentes</h4>
+                                <p>Receba insights e melhorias para tornar sua ideia ainda melhor</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="architect-intro-footer">
+                    <button class="architect-intro-btn" id="architectIntroUnderstoodBtn">
+                        Entendi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Architect PRD Modal -->
+        <div class="architect-prd-modal-overlay" id="architectPrdModalOverlay">
+            <div class="architect-prd-modal">
+                <div class="architect-prd-header">
+                    <h2>Documento Inicial</h2>
+                    <p class="architect-prd-subtitle">Descreva sua ideia, projeto ou requisitos</p>
+                </div>
+                <div class="architect-prd-body">
+                    <textarea id="architectPrdInput" class="architect-prd-textarea"
+                        placeholder="Exemplo:&#10;&#10;Projeto: App de Delivery de Comida&#10;&#10;Objetivo: Criar um aplicativo mobile que conecte restaurantes locais com clientes...&#10;&#10;Funcionalidades principais:&#10;- Cadastro de usuários e restaurantes&#10;- Cardápio digital com fotos&#10;- Sistema de pedidos em tempo real&#10;..."></textarea>
+                </div>
+                <div class="architect-prd-footer">
+                    <button class="architect-prd-cancel-btn" id="architectPrdCancelBtn">
+                        Cancelar
+                    </button>
+                    <button class="architect-prd-continue-btn" id="architectPrdContinueBtn">
+                        Continuar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Architect Sidebar (PRD Document) -->
+        <div class="architect-sidebar" id="architectSidebar">
+            <div class="architect-sidebar-header">
+                <div class="architect-sidebar-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <h3>Documento</h3>
+                </div>
+                <div class="architect-sidebar-actions">
+                    <button class="architect-action-btn" id="architectCopyBtn" title="Copiar documento">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                    <button class="architect-action-btn" id="architectWordCountBtn" title="Contagem de palavras">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M4 7h16"></path>
+                            <path d="M4 12h16"></path>
+                            <path d="M4 17h10"></path>
+                        </svg>
+                    </button>
+                    <button class="architect-sidebar-close" id="architectSidebarClose">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="architect-sidebar-body">
+                <div id="architectDocumentContent" class="architect-document-content" contenteditable="true"></div>
+            </div>
+            <div class="architect-sidebar-footer">
+                <div class="architect-stats">
+                    <span class="architect-stat" id="architectCharCount">0 caracteres</span>
+                    <span class="architect-stat-separator">•</span>
+                    <span class="architect-stat" id="architectWordCount">0 palavras</span>
+                </div>
+            </div>
+            <div class="architect-sidebar-resize-handle" id="architectSidebarResizeHandle"></div>
+        </div>
+
+        <!-- Terms of Use Modal -->
+        <div class="terms-modal-overlay" id="termsModalOverlay">
+            <div class="terms-modal" id="termsModal">
+                <div class="terms-header">
+                    <h2>Termos de Uso do OpenChat</h2>
+                    <p class="terms-date">Última atualização: 13 de janeiro de 2026</p>
+                </div>
+
+                <div class="terms-body">
+                    <div class="terms-content">
+                        <section class="terms-section">
+                            <h3>1. Aceitação dos Termos</h3>
+                            <p>Ao acessar e utilizar a aplicação OpenChat (doravante "Serviço"), você (doravante
+                                "Usuário") concorda em cumprir e estar vinculado a estes Termos de Uso. Se você não
+                                concorda com qualquer parte destes termos, você não tem permissão para usar o Serviço.
+                            </p>
+                        </section>
+
+                        <section class="terms-section">
+                            <h3>2. Elegibilidade</h3>
+                            <p>O uso do Serviço é estritamente proibido para menores de 18 anos. Ao utilizar o OpenChat,
+                                você declara e garante que tem 18 anos de idade ou mais e que possui a capacidade legal
+                                para celebrar este acordo.</p>
+                        </section>
+
+                        <section class="terms-section">
+                            <h3>3. Descrição do Serviço</h3>
+                            <p>O OpenChat é uma plataforma de inteligência artificial que opera sem filtros éticos,
+                                morais ou legais. O Serviço é fornecido "como está" e "conforme disponível", para fins
+                                experimentais e de entretenimento.</p>
+                        </section>
+
+                        <section class="terms-section">
+                            <h3>4. Responsabilidade do Usuário</h3>
+                            <p>O Usuário reconhece e concorda que é o único responsável por todo o conteúdo que gera e
+                                por todas as ações que realiza utilizando o Serviço. A OpenChat não se responsabiliza,
+                                sob nenhuma circunstância, pelo uso que o Usuário faz da plataforma, nem pelas
+                                consequências diretas ou indiretas desse uso.</p>
+                        </section>
+
+                        <section class="terms-section">
+                            <h3>5. Isenção de Responsabilidade</h3>
+                            <p>A OpenChat se isenta de toda e qualquer responsabilidade por danos de qualquer natureza
+                                que possam surgir do uso do Serviço, incluindo, mas não se limitando a, danos diretos,
+                                indiretos, incidentais, punitivos e consequenciais. O Usuário assume total
+                                responsabilidade por quaisquer riscos associados ao uso de uma inteligência artificial
+                                sem filtros.</p>
+                        </section>
+
+                        <section class="terms-section">
+                            <h3>6. Modificações nos Termos</h3>
+                            <p>A OpenChat reserva-se o direito de modificar estes Termos de Uso a qualquer momento. A
+                                continuação do uso do Serviço após tais modificações constituirá sua aceitação dos novos
+                                termos.</p>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="terms-footer">
+                    <div class="terms-checkbox-container">
+                        <label class="terms-checkbox-label">
+                            <input type="checkbox" id="termsCheckbox" class="terms-checkbox">
+                            <span class="terms-checkmark"></span>
+                            <span class="terms-checkbox-text">Confirmo que li, e aceito os termos acima</span>
+                        </label>
+                    </div>
+                    <div class="terms-actions">
+                        <button type="button" class="terms-reject-btn" id="rejectTermsBtn">
+                            Rejeitar
+                        </button>
+                        <button type="button" class="terms-accept-btn" id="acceptTermsBtn" disabled>
+                            Aceitar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="settings-modal-overlay" id="settingsModalOverlay">
+            <div class="settings-modal" id="settingsModal">
+                <div class="settings-header">
+                    <h2>Configurações</h2>
+                    <button class="close-settings-btn" id="closeSettingsBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="settings-body">
+                    <!-- Settings Sidebar -->
+                    <div class="settings-sidebar">
+                        <div class="settings-nav">
+                            <button class="settings-nav-item active" data-section="apis">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                    <path d="M2 17l10 5 10-5"></path>
+                                    <path d="M2 12l10 5 10-5"></path>
+                                </svg>
+                                <span>APIs</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="models">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path
+                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                    </path>
+                                </svg>
+                                <span>Modelos</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="personality">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <span>Personalidade</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="identity">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                    <path d="M12 11v6"></path>
+                                    <path d="M9 14h6"></path>
+                                </svg>
+                                <span>Identidade</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="memories">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                </svg>
+                                <span>Memórias</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="about">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 16v-4"></path>
+                                    <path d="M12 8h.01"></path>
+                                </svg>
+                                <span>Sobre</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Settings Content -->
+                    <div class="settings-content">
+                        <!-- APIs Section -->
+                        <div class="settings-section active" id="section-apis">
+                            <div class="panel-header">
+                                <h3>Configuração de APIs</h3>
+                                <p class="panel-description">Configure suas chaves de API para diferentes modelos de IA
+                                </p>
+                            </div>
+
+                            <!-- API Keys Info -->
+                            <div class="api-keys-info">
+                                <div class="info-card">
+                                    <div class="info-icon">🔑</div>
+                                    <div class="info-content">
+                                        <h4>Como obter suas API Keys</h4>
+                                        <p>Para usar o OpenChat, você precisa de pelo menos uma chave de API dos
+                                            provedores abaixo. As chaves são gratuitas para começar!</p>
+                                    </div>
+                                </div>
+
+                                <div class="providers-info">
+                                    <div class="provider-info">
+                                        <div class="provider-header">
+                                            <div class="api-icon gemini">G</div>
+                                            <div class="provider-details">
+                                                <h5>Google Gemini</h5>
+                                                <p class="provider-desc">Modelo avançado com suporte multimodal</p>
+                                            </div>
+                                        </div>
+                                        <div class="provider-steps">
+                                            <ol>
+                                                <li>Acesse <a href="#"
+                                                        onclick="openExternalLink('https://aistudio.google.com/app/apikey')"
+                                                        class="api-link">Google AI Studio</a></li>
+                                                <li>Faça login com sua conta Google</li>
+                                                <li>Clique em "Create API Key"</li>
+                                                <li>Copie a chave gerada</li>
+                                            </ol>
+                                            <div class="provider-note">
+                                                <strong>💡 Dica:</strong> O Gemini oferece uso gratuito generoso para
+                                                começar
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="provider-info">
+                                        <div class="provider-header">
+                                            <div class="api-icon mistral">M</div>
+                                            <div class="provider-details">
+                                                <h5>Mistral AI</h5>
+                                                <p class="provider-desc">Modelo europeu com streaming em tempo real</p>
+                                            </div>
+                                        </div>
+                                        <div class="provider-steps">
+                                            <ol>
+                                                <li>Acesse <a href="#"
+                                                        onclick="openExternalLink('https://console.mistral.ai/')"
+                                                        class="api-link">Mistral Console</a></li>
+                                                <li>Crie uma conta ou faça login</li>
+                                                <li>Vá para "API Keys" no menu</li>
+                                                <li>Clique em "Create new key"</li>
+                                                <li>Copie a chave gerada</li>
+                                            </ol>
+                                            <div class="provider-note">
+                                                <strong>💡 Dica:</strong> Mistral oferece €5 de crédito gratuito para
+                                                novos usuários
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="provider-info">
+                                        <div class="provider-header">
+                                            <div class="api-icon zai">Z</div>
+                                            <div class="provider-details">
+                                                <h5>Z.AI GLM</h5>
+                                                <p class="provider-desc">Modelos GLM chineses com capacidades avançadas
+                                                    de reasoning e coding</p>
+                                            </div>
+                                        </div>
+                                        <div class="provider-steps">
+                                            <ol>
+                                                <li>Acesse <a href="#"
+                                                        onclick="openExternalLink('https://open.bigmodel.cn/')"
+                                                        class="api-link">Z.AI Open Platform</a></li>
+                                                <li>Crie uma conta ou faça login</li>
+                                                <li>Vá para "API Keys" no painel</li>
+                                                <li>Clique em "Create API Key"</li>
+                                                <li>Copie a chave gerada</li>
+                                            </ol>
+                                            <div class="provider-note">
+                                                <strong>💡 Dica:</strong> Z.AI oferece créditos gratuitos para testar os
+                                                modelos GLM-4.5 e GLM-4.6
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="api-configs">
+                                <!-- Gemini API -->
+                                <div class="api-config">
+                                    <div class="api-header">
+                                        <div class="api-info">
+                                            <div class="api-icon gemini">G</div>
+                                            <div class="api-details">
+                                                <h4>Google Gemini</h4>
+                                                <span class="api-status" id="geminiStatus">Não configurado</span>
+                                            </div>
+                                        </div>
+                                        <div class="api-toggle">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="geminiEnabled">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="api-form" id="geminiForm">
+                                        <div class="form-group">
+                                            <label for="geminiApiKey">Chave da API</label>
+                                            <div class="input-with-button">
+                                                <input type="password" id="geminiApiKey"
+                                                    placeholder="Insira sua chave da API do Gemini" class="api-input">
+                                                <button type="button" class="toggle-password-btn"
+                                                    data-target="geminiApiKey">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="geminiModel">Modelo</label>
+                                            <select id="geminiModel" class="model-select">
+                                                <!-- Série Gemini 3 (Geração Atual) -->
+                                                <optgroup label="Série Gemini 3 (Geração Atual)">
+                                                    <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
+                                                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview
+                                                    </option>
+                                                    <option value="gemini-3-pro-image-preview">Gemini 3 Pro Image
+                                                        Preview</option>
+                                                </optgroup>
+
+                                                <!-- Série Gemini 2.5 -->
+                                                <optgroup label="Série Gemini 2.5">
+                                                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                                    <option value="gemini-2.5-flash-8b">Gemini 2.5 Flash-8B</option>
+                                                </optgroup>
+
+                                                <!-- Série Gemini 2.0 -->
+                                                <optgroup label="Série Gemini 2.0">
+                                                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Experimental
+                                                    </option>
+                                                </optgroup>
+
+                                                <!-- Modelos Legados -->
+                                                <optgroup label="Modelos Legados">
+                                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                                    <option value="gemini-pro">Gemini Pro</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <button type="button" class="test-api-btn" id="testGeminiBtn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <polyline points="9,11 12,14 22,4"></polyline>
+                                                <path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11">
+                                                </path>
+                                            </svg>
+                                            Testar Conexão
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Mistral API -->
+                                <div class="api-config">
+                                    <div class="api-header">
+                                        <div class="api-info">
+                                            <div class="api-icon mistral">M</div>
+                                            <div class="api-details">
+                                                <h4>Mistral AI</h4>
+                                                <span class="api-status" id="mistralStatus">Não configurado</span>
+                                            </div>
+                                        </div>
+                                        <div class="api-toggle">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="mistralEnabled">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="api-form" id="mistralForm">
+                                        <div class="form-group">
+                                            <label for="mistralApiKey">Chave da API</label>
+                                            <div class="input-with-button">
+                                                <input type="password" id="mistralApiKey"
+                                                    placeholder="Insira sua chave da API do Mistral" class="api-input">
+                                                <button type="button" class="toggle-password-btn"
+                                                    data-target="mistralApiKey">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="mistralModel">Modelo</label>
+                                            <select id="mistralModel" class="model-select">
+                                                <!-- Modelos de Fronteira (Os mais poderosos) -->
+                                                <optgroup label="Modelos de Fronteira">
+                                                    <option value="mistral-large-latest">Mistral Large Latest</option>
+                                                    <option value="mistral-medium-latest">Mistral Medium Latest</option>
+                                                </optgroup>
+
+                                                <!-- Modelos Otimizados para Velocidade e Custo -->
+                                                <optgroup label="Série Flash (Velocidade e Custo)">
+                                                    <option value="mistral-small-latest">Mistral Small Latest</option>
+                                                    <option value="open-mistral-nemo">Mistral NeMo</option>
+                                                </optgroup>
+
+                                                <!-- Modelos de Código Aberto -->
+                                                <optgroup label="Modelos de Código Aberto">
+                                                    <option value="open-mistral-7b">Open Mistral 7B</option>
+                                                    <option value="open-mixtral-8x7b">Open Mixtral 8x7B</option>
+                                                    <option value="open-mixtral-8x22b">Open Mixtral 8x22B</option>
+                                                </optgroup>
+
+                                                <!-- Modelos Especializados -->
+                                                <optgroup label="Modelos Especializados">
+                                                    <option value="codestral-latest">Codestral Latest</option>
+                                                    <option value="codestral-mamba-latest">Codestral Mamba Latest
+                                                    </option>
+                                                    <option value="open-codestral-mamba">Open Codestral Mamba</option>
+                                                    <option value="pixtral-12b-2409">Pixtral 12B</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <button type="button" class="test-api-btn" id="testMistralBtn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <polyline points="9,11 12,14 22,4"></polyline>
+                                                <path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11">
+                                                </path>
+                                            </svg>
+                                            Testar Conexão
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Z.AI GLM API -->
+                                <div class="api-config">
+                                    <div class="api-header">
+                                        <div class="api-info">
+                                            <div class="api-icon zai">Z</div>
+                                            <div class="api-details">
+                                                <h4>Z.AI GLM</h4>
+                                                <span class="api-status" id="zaiStatus">Não configurado</span>
+                                            </div>
+                                        </div>
+                                        <div class="api-toggle">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="zaiEnabled">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="api-form" id="zaiForm">
+                                        <div class="form-group">
+                                            <label for="zaiApiKey">Chave da API</label>
+                                            <div class="input-with-button">
+                                                <input type="password" id="zaiApiKey"
+                                                    placeholder="Insira sua chave da API do Z.AI" class="api-input">
+                                                <button type="button" class="toggle-password-btn"
+                                                    data-target="zaiApiKey">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="zaiModel">Modelo</label>
+                                            <select id="zaiModel" class="model-select">
+                                                <!-- Série GLM-4.7 (Mais Recente - Coding) -->
+                                                <optgroup label="Série GLM-4.7 (Coding Otimizado)">
+                                                    <option value="glm-4.7">GLM-4.7</option>
+                                                </optgroup>
+
+                                                <!-- Série GLM-4.6 (Flagship) -->
+                                                <optgroup label="Série GLM-4.6 (Flagship)">
+                                                    <option value="glm-4.6">GLM-4.6</option>
+                                                </optgroup>
+
+                                                <!-- Série GLM-4.5 (Foundation para Agents) -->
+                                                <optgroup label="Série GLM-4.5 (Foundation para Agents)">
+                                                    <option value="glm-4.5">GLM-4.5 (355B total, 32B ativo)</option>
+                                                    <option value="glm-4.5-air">GLM-4.5-Air (106B total, 12B ativo)
+                                                    </option>
+                                                    <option value="glm-4.5-x">GLM-4.5-X</option>
+                                                    <option value="glm-4.5-airx">GLM-4.5-AirX</option>
+                                                </optgroup>
+
+                                                <!-- Série GLM-4 (Versões Anteriores) -->
+                                                <optgroup label="Série GLM-4 (Versões Anteriores)">
+                                                    <option value="glm-4">GLM-4</option>
+                                                    <option value="glm-4-plus">GLM-4-Plus</option>
+                                                    <option value="glm-4-air">GLM-4-Air</option>
+                                                    <option value="glm-4-airx">GLM-4-AirX</option>
+                                                    <option value="glm-4-flash">GLM-4-Flash</option>
+                                                    <option value="glm-4-flashx">GLM-4-FlashX</option>
+                                                </optgroup>
+
+                                                <!-- Série GLM-3 -->
+                                                <optgroup label="Série GLM-3">
+                                                    <option value="glm-3-turbo">GLM-3-Turbo</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <button type="button" class="test-api-btn" id="testZaiBtn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <polyline points="9,11 12,14 22,4"></polyline>
+                                                <path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11">
+                                                </path>
+                                            </svg>
+                                            Testar Conexão
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Models Section -->
+                        <div class="settings-section" id="section-models">
+                            <div class="panel-header">
+                                <h3>Modelo Ativo</h3>
+                                <p class="panel-description">Selecione qual modelo de IA usar para as conversas</p>
+                            </div>
+
+                            <div class="model-selection-grid">
+                                <div class="model-card" data-model="gemini">
+                                    <label class="model-radio">
+                                        <input type="radio" name="activeModel" value="gemini" id="selectGemini">
+                                        <div class="model-card-content">
+                                            <div class="model-icon gemini">G</div>
+                                            <div class="model-info">
+                                                <span class="model-name">Google Gemini</span>
+                                                <span class="model-description">Modelo avançado do Google com
+                                                    capacidades multimodais</span>
+                                            </div>
+                                            <div class="model-status">
+                                                <div class="status-indicator" id="geminiIndicator"></div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="model-card" data-model="mistral">
+                                    <label class="model-radio">
+                                        <input type="radio" name="activeModel" value="mistral" id="selectMistral">
+                                        <div class="model-card-content">
+                                            <div class="model-icon mistral">M</div>
+                                            <div class="model-info">
+                                                <span class="model-name">Mistral AI</span>
+                                                <span class="model-description">Modelo europeu de código aberto com
+                                                    streaming</span>
+                                            </div>
+                                            <div class="model-status">
+                                                <div class="status-indicator" id="mistralIndicator"></div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="model-card" data-model="zai">
+                                    <label class="model-radio">
+                                        <input type="radio" name="activeModel" value="zai" id="selectZai">
+                                        <div class="model-card-content">
+                                            <div class="model-icon zai">Z</div>
+                                            <div class="model-info">
+                                                <span class="model-name">Z.AI GLM</span>
+                                                <span class="model-description">Modelos GLM com reasoning avançado e
+                                                    coding</span>
+                                            </div>
+                                            <div class="model-status">
+                                                <div class="status-indicator" id="zaiIndicator"></div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="model-features">
+                                <h4>Recursos do Modelo Selecionado</h4>
+                                <div class="features-list" id="modelFeatures">
+                                    <div class="feature-item">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <polyline points="20,6 9,17 4,12"></polyline>
+                                        </svg>
+                                        <span>Selecione um modelo para ver os recursos</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personality Section -->
+                        <div class="settings-section" id="section-personality">
+                            <div class="panel-header">
+                                <h3>Personalidade da IA</h3>
+                                <p class="panel-description">Configure como a IA se comporta e responde</p>
+                            </div>
+
+                            <div class="personality-options">
+                                <div class="config-group">
+                                    <label class="config-label">Tipo de Personalidade</label>
+                                    <select id="personalityType" class="personality-select">
+                                        <option value="balanced">Equilibrado</option>
+                                        <option value="friendly">Amigável</option>
+                                        <option value="professional">Profissional</option>
+                                        <option value="casual">Casual</option>
+                                        <option value="witty">Espirituoso</option>
+                                        <option value="direct">Direto</option>
+                                        <option value="enthusiastic">Entusiástico</option>
+                                        <option value="analytical">Analítico</option>
+                                        <option value="spicy">Picante/Safado</option>
+                                    </select>
+                                </div>
+
+                                <div class="config-group">
+                                    <label class="config-label">Nível de Formalidade</label>
+                                    <div class="slider-container">
+                                        <input type="range" id="formalityLevel" class="personality-slider" min="1"
+                                            max="5" value="3">
+                                        <div class="slider-labels">
+                                            <span>Informal</span>
+                                            <span>Formal</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="config-group">
+                                    <label class="config-label">Linguagem</label>
+                                    <div class="toggle-options">
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="allowProfanity" class="personality-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Permitir linguagem forte/xingamentos</span>
+                                        </label>
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="useSlang" class="personality-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Usar gírias e expressões coloquiais</span>
+                                        </label>
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="useEmojis" class="personality-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Usar emojis nas respostas</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="config-group">
+                                    <label class="config-label">Estilo de Resposta</label>
+                                    <div class="response-style-grid">
+                                        <label class="style-card">
+                                            <input type="radio" name="responseStyle" value="concise">
+                                            <div class="style-content">
+                                                <div class="style-icon">📝</div>
+                                                <span class="style-name">Conciso</span>
+                                            </div>
+                                        </label>
+                                        <label class="style-card">
+                                            <input type="radio" name="responseStyle" value="detailed" checked>
+                                            <div class="style-content">
+                                                <div class="style-icon">📚</div>
+                                                <span class="style-name">Detalhado</span>
+                                            </div>
+                                        </label>
+                                        <label class="style-card">
+                                            <input type="radio" name="responseStyle" value="conversational">
+                                            <div class="style-content">
+                                                <div class="style-icon">💬</div>
+                                                <span class="style-name">Conversacional</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Identity Section -->
+                        <div class="settings-section" id="section-identity">
+                            <div class="panel-header">
+                                <h3>Identidade do Usuário</h3>
+                                <p class="panel-description">Ajude a IA a conhecer você melhor</p>
+                            </div>
+
+                            <div class="identity-content">
+                                <div class="identity-info-card">
+                                    <div class="info-icon">👤</div>
+                                    <div class="info-content">
+                                        <h4>Por que compartilhar sua identidade?</h4>
+                                        <p>Ao compartilhar informações sobre você, a IA pode personalizar as respostas
+                                            de acordo com seu contexto, interesses e preferências, tornando a conversa
+                                            mais natural e relevante.</p>
+                                    </div>
+                                </div>
+
+                                <div class="identity-form">
+                                    <div class="form-group">
+                                        <label for="userNickname" class="identity-label">
+                                            <span>Apelido</span>
+                                            <span class="label-hint">Como você gostaria de ser chamado?</span>
+                                        </label>
+                                        <input type="text" id="userNickname" class="identity-input"
+                                            placeholder="Ex: João, Maria, Zé..." maxlength="50">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="userBio" class="identity-label">
+                                            <span>Sobre Você</span>
+                                            <span class="label-hint">Conte um pouco sobre você, seus interesses,
+                                                profissão, hobbies...</span>
+                                        </label>
+                                        <textarea id="userBio" class="identity-textarea"
+                                            placeholder="Ex: Sou desenvolvedor de software, gosto de jogos e música. Trabalho com JavaScript e Python..."
+                                            rows="8" maxlength="1000"></textarea>
+                                        <div class="char-counter">
+                                            <span id="bioCharCount">0</span>/1000 caracteres
+                                        </div>
+                                    </div>
+
+                                    <div class="identity-examples">
+                                        <h5>💡 Exemplos do que você pode compartilhar:</h5>
+                                        <ul>
+                                            <li><strong>Profissão:</strong> "Sou estudante de medicina" ou "Trabalho
+                                                como designer gráfico"</li>
+                                            <li><strong>Interesses:</strong> "Gosto de tecnologia, games e animes"</li>
+                                            <li><strong>Hobbies:</strong> "Nas horas vagas, toco violão e faço trilhas"
+                                            </li>
+                                            <li><strong>Objetivos:</strong> "Estou aprendendo programação para mudar de
+                                                carreira"</li>
+                                            <li><strong>Contexto:</strong> "Moro no Brasil, tenho 25 anos"</li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="identity-privacy">
+                                        <div class="privacy-icon">🔒</div>
+                                        <div class="privacy-text">
+                                            <strong>Privacidade:</strong> Suas informações são armazenadas apenas
+                                            localmente no seu computador e são usadas exclusivamente para personalizar
+                                            suas conversas com a IA.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Memories Section -->
+                        <div class="settings-section" id="section-memories">
+                            <div class="panel-header">
+                                <h3>Memórias da IA</h3>
+                                <p class="panel-description">Gerencie as memórias que a IA guarda sobre você e suas
+                                    conversas</p>
+                            </div>
+
+                            <div class="memories-info">
+                                <div class="info-card">
+                                    <div class="info-icon">🧠</div>
+                                    <div class="info-content">
+                                        <h4>Como funciona o sistema de memória?</h4>
+                                        <p>A IA pode salvar informações importantes automaticamente ou quando você
+                                            pedir. Essas memórias são usadas para personalizar as respostas e manter
+                                            contexto entre diferentes conversas.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="memories-container">
+                                <div class="memories-header">
+                                    <h4>Memórias Salvas</h4>
+                                    <button class="btn-secondary" id="refreshMemoriesBtn">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path
+                                                d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2">
+                                            </path>
+                                        </svg>
+                                        Atualizar
+                                    </button>
+                                </div>
+
+                                <div class="memories-list" id="memoriesList">
+                                    <!-- Memories will be loaded here -->
+                                    <div class="memories-empty">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="1.5">
+                                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                        </svg>
+                                        <p>Nenhuma memória salva ainda</p>
+                                        <p class="memories-empty-hint">A IA salvará memórias automaticamente quando você
+                                            compartilhar informações importantes ou quando você pedir para ela lembrar
+                                            de algo.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About Section -->
+                        <div class="settings-section" id="section-about">
+                            <div class="panel-header">
+                                <h3>Sobre o OpenChat</h3>
+                                <p class="panel-description">Informações sobre a aplicação</p>
+                            </div>
+
+                            <div class="about-content">
+                                <div class="app-info">
+                                    <div class="app-logo">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="1.5">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z">
+                                            </path>
+                                            <circle cx="12" cy="10" r="2"></circle>
+                                            <path d="M8 21v-2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </div>
+                                    <h4>OpenChat</h4>
+                                    <p class="version">v1.1.2 (B)</p>
+                                    <p class="developer">Desenvolvido por <strong>Junior_7i</strong></p>
+                                    <p class="description">
+                                        Uma aplicação de chat inteligente que conecta você aos melhores modelos de IA do
+                                        mundo.
+                                        Converse de forma natural e obtenha respostas precisas e úteis para suas
+                                        perguntas.
+                                    </p>
+                                </div>
+
+                                <div class="app-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-icon">🤖</div>
+                                        <div class="stat-info">
+                                            <span class="stat-number">3</span>
+                                            <span class="stat-label">Modelos de IA</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-icon">💬</div>
+                                        <div class="stat-info">
+                                            <span class="stat-number">∞</span>
+                                            <span class="stat-label">Conversas Ilimitadas</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-icon">🎨</div>
+                                        <div class="stat-info">
+                                            <span class="stat-number">9</span>
+                                            <span class="stat-label">Personalidades</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="features-highlight">
+                                    <h5>Principais Recursos</h5>
+                                    <div class="features-grid">
+                                        <div class="feature-card">
+                                            <div class="feature-icon">🧠</div>
+                                            <h6>IA Avançada</h6>
+                                            <p>Acesso aos modelos Gemini, Mistral AI e Z.AI GLM</p>
+                                        </div>
+                                        <div class="feature-card">
+                                            <div class="feature-icon">⚡</div>
+                                            <h6>Respostas Rápidas</h6>
+                                            <p>Streaming em tempo real das respostas</p>
+                                        </div>
+                                        <div class="feature-card">
+                                            <div class="feature-icon">🎭</div>
+                                            <h6>Personalização</h6>
+                                            <p>Configure a personalidade da IA</p>
+                                        </div>
+                                        <div class="feature-card">
+                                            <div class="feature-icon">📱</div>
+                                            <h6>Interface Moderna</h6>
+                                            <p>Design elegante e fácil de usar</p>
+                                        </div>
+                                        <div class="feature-card">
+                                            <div class="feature-icon">💾</div>
+                                            <h6>Histórico</h6>
+                                            <p>Salve e organize suas conversas</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="app-links">
+                                    <h5>Links Úteis</h5>
+                                    <div class="links-grid">
+                                        <a href="#" class="link-item"
+                                            onclick="openExternalLink('https://github.com/antojunimaia-ui')">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                                <path
+                                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                                            </svg>
+                                            <span>GitHub do Desenvolvedor</span>
+                                        </a>
+                                        <a href="#" class="link-item"
+                                            onclick="openExternalLink('https://github.com/antojunimaia-ui/openchat/releases/tag/openchat')">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <path d="M12 6v6l4 2"></path>
+                                            </svg>
+                                            <span>Atualizações</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Action Buttons (hidden by default) -->
+                <div class="settings-floating-actions" id="settingsFloatingActions" style="display: none;">
+                    <button type="button" class="cancel-btn" id="cancelSettingsBtn">
+                        Cancelar
+                    </button>
+                    <button type="button" class="save-btn" id="saveSettingsBtn">
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Message -->
+            <div class="welcome-message">
+                <h2 id="welcomeText">No que você está pensando hoje?</h2>
+            </div>
+        </main>
+
+        <!-- Voice Call Interface -->
+        <div class="voice-call-overlay" id="voiceCallOverlay" style="display: none;">
+            <div class="voice-call-container">
+                <!-- Pulsating Orb -->
+                <div class="voice-orb-container">
+                    <div class="voice-orb" id="voiceOrb">
+                        <div class="orb-core"></div>
+                        <div class="orb-pulse orb-pulse-1"></div>
+                        <div class="orb-pulse orb-pulse-2"></div>
+                        <div class="orb-pulse orb-pulse-3"></div>
+                    </div>
+                </div>
+
+                <!-- Call Status -->
+                <div class="voice-call-status">
+                    <p class="voice-status-text" id="voiceStatusText">Conectado</p>
+                    <p class="voice-duration" id="voiceDuration">00:00</p>
+                </div>
+
+                <!-- Voice Call Controls -->
+                <div class="voice-call-controls">
+                    <!-- Mute AI Button -->
+                    <button class="voice-control-btn" id="muteAIBtn" title="Mutar IA">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <line x1="23" y1="9" x2="17" y2="15" class="mute-line"></line>
+                            <line x1="17" y1="9" x2="23" y2="15" class="mute-line"></line>
+                        </svg>
+                        <span class="voice-control-label">Mutar IA</span>
+                    </button>
+
+                    <!-- Mute User Mic Button -->
+                    <button class="voice-control-btn" id="muteMicBtn" title="Mutar Microfone">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="23" y1="1" x2="1" y2="23" class="mute-line"></line>
+                        </svg>
+                        <span class="voice-control-label">Mutar Mic</span>
+                    </button>
+
+                    <!-- Keyboard Input Button -->
+                    <button class="voice-control-btn" id="keyboardInputBtn" title="Entrada por Teclado">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                            <path d="M6 8h.01"></path>
+                            <path d="M10 8h.01"></path>
+                            <path d="M14 8h.01"></path>
+                            <path d="M18 8h.01"></path>
+                            <path d="M8 12h.01"></path>
+                            <path d="M12 12h.01"></path>
+                            <path d="M16 12h.01"></path>
+                            <path d="M7 16h10"></path>
+                        </svg>
+                        <span class="voice-control-label">Teclado</span>
+                    </button>
+
+                    <!-- End Call Button -->
+                    <button class="voice-control-btn voice-end-call-btn" id="endCallBtn" title="Encerrar Chamada">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M3 9c0-1.1.9-2 2-2h3.93c.35 0 .68.18.86.49l1.9 3.79c.18.36.11.8-.18 1.09l-1.9 1.9c.94 1.66 2.34 3.06 4 4l1.9-1.9c.29-.29.73-.36 1.09-.18l3.79 1.9c.31.18.49.51.49.86V21c0 1.1-.9 2-2 2-9.39 0-17-7.61-17-17z" />
+                        </svg>
+                        <span class="voice-control-label">Encerrar</span>
+                    </button>
+                </div>
+
+                <!-- Keyboard Input Panel (hidden by default) -->
+                <div class="voice-keyboard-panel" id="voiceKeyboardPanel" style="display: none;">
+                    <div class="voice-keyboard-input-wrapper">
+                        <input type="text" class="voice-keyboard-input" id="voiceKeyboardInput"
+                            placeholder="Digite sua mensagem...">
+                        <button class="voice-keyboard-send-btn" id="voiceKeyboardSendBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 5.25L12 18.75"></path>
+                                <path d="M18.75 12L12 5.25L5.25 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Chat Input -->
+        <div class="chat-input-container">
+            <div class="prompt-box">
+                <!-- Image Preview -->
+                <div class="image-preview-container" id="imagePreview" style="display: none;">
+                    <div class="image-preview-wrapper">
+                        <img class="image-preview" id="previewImg" alt="Image preview">
+                        <button class="remove-image-btn" id="removeImageBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Textarea -->
+                <textarea class="chat-textarea" placeholder="Pergunte qualquer coisa..." id="messageInput"
+                    rows="1"></textarea>
+
+                <!-- Bottom Controls -->
+                <div class="input-controls">
+                    <div class="left-controls">
+                        <!-- Attach Image Button -->
+                        <button class="control-btn" id="attachBtn" title="Attach image">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <path d="M12 5V19"></path>
+                                <path d="M5 12H19"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Tools Button -->
+                        <div class="tools-container">
+                            <button class="tools-btn" id="toolsBtn" title="Explore Tools">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.5">
+                                    <path d="M20 7h-9"></path>
+                                    <path d="M14 17H5"></path>
+                                    <circle cx="17" cy="17" r="3"></circle>
+                                    <circle cx="7" cy="7" r="3"></circle>
+                                </svg>
+                                <span class="tools-text">Ferramentas</span>
+                            </button>
+
+                            <!-- Tools Dropdown -->
+                            <div class="tools-dropdown" id="toolsDropdown">
+                                <button class="tool-item" data-tool="createImage">
+                                    <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
+                                        <path
+                                            d="M141.176,324.641l25.323,17.833c7.788,5.492,17.501,7.537,26.85,5.67c9.35-1.877,17.518-7.514,22.597-15.569l22.985-36.556l-78.377-55.222l-26.681,33.96c-5.887,7.489-8.443,17.081-7.076,26.511C128.188,310.69,133.388,319.158,141.176,324.641z" />
+                                        <path
+                                            d="M384.289,64.9c9.527-15.14,5.524-35.06-9.083-45.355l-0.194-0.129c-14.615-10.296-34.728-7.344-45.776,6.705L170.041,228.722l77.067,54.292L384.289,64.9z" />
+                                    </svg>
+                                    <span>Criar imagem</span>
+                                </button>
+                                <button class="tool-item" data-tool="searchWeb">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.5">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M2 12h20"></path>
+                                        <path
+                                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                                        </path>
+                                    </svg>
+                                    <span>Busca na web
+                                </button>
+                                <button class="tool-item" data-tool="thinkLonger">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path
+                                            d="M12 7C9.23858 7 7 9.23858 7 12C7 13.3613 7.54402 14.5955 8.42651 15.4972C8.77025 15.8484 9.05281 16.2663 9.14923 16.7482L9.67833 19.3924C9.86537 20.3272 10.6862 21 11.6395 21H12.3605C13.3138 21 14.1346 20.3272 14.3217 19.3924L14.8508 16.7482C14.9472 16.2663 15.2297 15.8484 15.5735 15.4972C16.456 14.5955 17 13.3613 17 12C17 9.23858 14.7614 7 12 7Z">
+                                        </path>
+                                        <path d="M12 4V3"></path>
+                                        <path d="M18 6L19 5"></path>
+                                        <path d="M20 12H21"></path>
+                                        <path d="M4 12H3"></path>
+                                        <path d="M5 5L6 6"></path>
+                                        <path d="M10 17H14"></path>
+                                    </svg>
+                                    <span>Pensamento</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Selected Tool Display -->
+                        <div class="selected-tool" id="selectedTool" style="display: none;">
+                            <div class="tool-divider"></div>
+                            <button class="selected-tool-btn" id="selectedToolBtn">
+                                <span class="selected-tool-icon" id="selectedToolIcon"></span>
+                                <span class="selected-tool-name" id="selectedToolName"></span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="right-controls">
+                        <!-- Voice Button -->
+                        <button class="control-btn" id="voiceBtn" title="Record voice">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                            </svg>
+                        </button>
+
+                        <!-- Send Button -->
+                        <button class="send-btn" id="sendBtn" title="Send" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 5.25L12 18.75"></path>
+                                <path d="M18.75 12L12 5.25L5.25 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden File Input -->
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <script src="voice-call.js"></script>
+
+    <!-- Christmas Snow Check Script -->
+    <script>
+        // Immediate check for Christmas season
+        (function () {
+            const now = new Date();
+            const month = now.getMonth(); // 0 = January, 11 = December
+            const day = now.getDate();
+
+            console.log(`Script inline: Verificando época natalina - Mês: ${month}, Dia: ${day}`);
+
+            // Only December is Christmas season
+            const isChristmasSeason = (month === 11); // Only December
+            console.log(`Script inline: É época natalina? ${isChristmasSeason}`);
+
+            const snowContainer = document.getElementById('snowContainer');
+            if (snowContainer) {
+                if (isChristmasSeason) {
+                    console.log('Script inline: Mostrando container de neve');
+                    snowContainer.style.display = 'block';
+                } else {
+                    console.log('Script inline: Escondendo container de neve');
+                    snowContainer.style.display = 'none';
+                }
+            } else {
+                console.log('Script inline: Container de neve não encontrado');
+            }
+        })();
+
+        // Immediate check for New Year's Day
+        (function () {
+            const now = new Date();
+            const month = now.getMonth(); // 0 = January
+            const day = now.getDate();
+            const year = now.getFullYear();
+
+            console.log(`Script inline: Verificando Ano Novo - Mês: ${month}, Dia: ${day}, Ano: ${year}`);
+
+            const isNewYearsDay = (month === 0 && day === 1); // January 1st
+            console.log(`Script inline: É dia de Ano Novo? ${isNewYearsDay}`);
+
+            const welcomeText = document.getElementById('welcomeText');
+
+            if (isNewYearsDay && welcomeText) {
+                console.log('Script inline: Alterando texto para Ano Novo');
+                welcomeText.textContent = `OpenChat te deseja um Feliz ${year}! 🎉`;
+            } else if (welcomeText) {
+                console.log('Script inline: Mantendo texto padrão');
+                welcomeText.textContent = 'No que você está pensando hoje?';
+            }
+        })();
+    </script>
+</body>
+
+</html>

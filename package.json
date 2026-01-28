@@ -1,0 +1,69 @@
+{
+  "name": "openchat-electron",
+  "version": "1.1.2",
+  "description": "Aplicação de chat OpenChat usando Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "electron": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never",
+    "build-win": "electron-builder --win --x64 --publish=never",
+    "build-linux": "electron-builder --linux --x64 --publish=never",
+    "build-chromeos": "electron-builder --linux --x64 --publish=never",
+    "build-all": "electron-builder --win --linux --mac --x64 --publish=never"
+  },
+  "keywords": [
+    "electron",
+    "chat",
+    "openchat"
+  ],
+  "author": "Seu Nome",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.example.openchat",
+    "productName": "OpenChat",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "!dist/**/*",
+      "!**/*.py",
+      "!**/*.pkl",
+      "!test_*.js",
+      "!**/__pycache__/**/*",
+      "!.git/**/*",
+      "!.vscode/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Utility",
+      "icon": "icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.utilities"
+    }
+  },
+  "dependencies": {
+  }
+}

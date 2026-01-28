@@ -1,0 +1,342 @@
+/* ========================================
+   VOICE CALL INTERFACE STYLES
+   ======================================== */
+
+/* Voice Call Overlay - Full Screen */
+.voice-call-overlay {
+    position: fixed;
+    top: 28px; /* Below titlebar */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000000;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: voiceCallFadeIn 0.4s ease-out;
+}
+
+@keyframes voiceCallFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.voice-call-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Voice Orb Container */
+.voice-orb-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 60px;
+}
+
+/* Main Voice Orb */
+.voice-orb {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Orb Core - Black sphere */
+.orb-core {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+    box-shadow: 
+        0 0 40px rgba(255, 255, 255, 0.1),
+        inset 0 0 60px rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse Rings */
+.orb-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    opacity: 0;
+    z-index: 1;
+}
+
+.orb-pulse-1 {
+    width: 200px;
+    height: 200px;
+    animation: orbPulse 2s ease-out infinite;
+}
+
+.orb-pulse-2 {
+    width: 200px;
+    height: 200px;
+    animation: orbPulse 2s ease-out 0.6s infinite;
+}
+
+.orb-pulse-3 {
+    width: 200px;
+    height: 200px;
+    animation: orbPulse 2s ease-out 1.2s infinite;
+}
+
+@keyframes orbPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* Active state - when AI is speaking */
+.voice-orb.speaking .orb-core {
+    box-shadow: 
+        0 0 60px rgba(255, 255, 255, 0.3),
+        0 0 100px rgba(255, 255, 255, 0.2),
+        inset 0 0 80px rgba(255, 255, 255, 0.1);
+    animation: orbGlow 1.5s ease-in-out infinite;
+}
+
+.voice-orb.speaking .orb-pulse {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes orbGlow {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Call Status */
+.voice-call-status {
+    text-align: center;
+    margin-bottom: 80px;
+}
+
+.voice-status-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 8px;
+}
+
+.voice-duration {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Voice Call Controls */
+.voice-call-controls {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.voice-control-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px;
+    min-width: 80px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.voice-control-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+}
+
+.voice-control-btn:active {
+    transform: translateY(0);
+}
+
+.voice-control-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.voice-control-label {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Muted states */
+.voice-control-btn.muted {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.voice-control-btn.muted .mute-line {
+    stroke: #ef4444;
+}
+
+.voice-control-btn.muted:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* End Call Button - Red */
+.voice-end-call-btn {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.voice-end-call-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
+.voice-end-call-btn svg {
+    transform: rotate(135deg);
+}
+
+/* Keyboard Input Panel */
+.voice-keyboard-panel {
+    position: absolute;
+    bottom: 200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 500px;
+    animation: slideUpFade 0.3s ease-out;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.voice-keyboard-input-wrapper {
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    padding: 8px 12px;
+    backdrop-filter: blur(10px);
+}
+
+.voice-keyboard-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 16px;
+    padding: 8px 12px;
+    font-family: inherit;
+}
+
+.voice-keyboard-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.voice-keyboard-send-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: white;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.voice-keyboard-send-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05);
+}
+
+.voice-keyboard-send-btn:active {
+    transform: scale(0.95);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .voice-orb {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .orb-core {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .orb-pulse-1,
+    .orb-pulse-2,
+    .orb-pulse-3 {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .voice-call-controls {
+        gap: 16px;
+        bottom: 60px;
+    }
+    
+    .voice-control-btn {
+        min-width: 70px;
+        padding: 12px;
+    }
+    
+    .voice-keyboard-panel {
+        bottom: 160px;
+    }
+}
