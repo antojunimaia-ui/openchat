@@ -28,6 +28,57 @@ Apos instalar as dependencias, execute o openchat usando o seguinte comando:
 npm run dev
 ```
 
+## Configuração
+
+O OpenChat permite que você utilize diferentes modelos de IA (Gemini, Mistral e Z.AI). Para começar, você precisa configurar as chaves de API nas configurações do aplicativo.
+
+### 1. Acessando as Configurações
+
+Para abrir o painel de configurações, clique no ícone de **Configurações (⚙️)** localizado na parte inferior da barra lateral esquerda.
+
+### 2. Configurando as APIs
+
+No painel de configurações, na aba **APIs**, você pode configurar as seguintes chaves:
+
+#### **Google Gemini**
+
+1. Acesse o [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Faça login com sua conta Google.
+3. Clique em **"Create API Key"**.
+4. Copie a chave gerada e cole no campo "Chave da API" do Gemini no OpenChat.
+5. Ative a chave no botão de alternância (toggle) e selecione o modelo desejado (ex: `gemini-2.5-flash`).
+
+#### **Mistral AI**
+
+1. Acesse o [Mistral Console](https://console.mistral.ai/).
+2. Crie uma conta ou faça login.
+3. Vá para **"API Keys"** no menu lateral.
+4. Clique em **"Create new key"**.
+5. Copie a chave e cole no campo correspondente no OpenChat.
+
+#### **Z.AI GLM**
+
+1. Acesse o [Z.AI Open Platform](https://open.bigmodel.cn/).
+2. Crie uma conta ou faça login.
+3. Vá para **"API Keys"** no painel de controle.
+4. Clique em **"Create API Key"**.
+5. Copie a chave e cole no campo correspondente no OpenChat.
+
+### 3. Selecionando o Modelo Ativo
+
+Após configurar as chaves, vá para a aba **Modelos** nas configurações e selecione qual provedor você deseja usar. O modelo selecionado será o responsável pelas respostas nas suas conversas.
+
+### 4. Personalidade e Prompt de Sistema
+
+Você pode ajustar o comportamento da IA na aba **Personalidade**. Se desejar um controle ainda mais profundo, o OpenChat lê o arquivo `system-prompt.txt` na raiz do projeto como instrução base. Você pode editar este arquivo para mudar a "alma" da sua IA.
+
+### 5. Memória e Localização dos Dados
+
+O OpenChat salva suas preferências, memórias e histórico localmente. No Windows, esses dados ficam em:
+
+- **Configurações e Memórias:** `%USERPROFILE%/.openchat/`
+- **Histórico de Conversas:** `%USERPROFILE%/.openchat/chats/`
+
 **Nota**: O código neste repositório está em desenvolvimento ativo. Versões estáveis e oficiais são disponibilizadas como executáveis (.exe) na página de [releases](https://github.com/antojunimaia-ui/openchat/releases/).
 
 ## Contribua
