@@ -1,3 +1,5 @@
+# OpenChat
+
 OpenChat é o espaço onde você pode dizer o que outras IAs simplesmente não permitem.
 Enquanto plataformas tradicionais impõem filtros agressivos, limitações arbitrárias e barreiras que cortam metade da conversa, o OpenChat entrega um ambiente direto, aberto e sem amarras.
 
@@ -6,33 +8,41 @@ Nada de sistemas fechados, nada de regras opacas. Você conversa, cria e explora
 
 O OpenChat nasceu com um objetivo claro: garantir liberdade de conhecimento e permitir que qualquer pessoa tenha autonomia total sobre a própria experiência. Aqui, a conversa é sua. Sempre.
 
-para usar o openchat, clone o repositorio:
-```
+## Instalação
+
+Para usar o openchat, clone o repositorio:
+
+```bash
 git clone https://github.com/antojunimaia-ui/openchat.git
 ```
 
-apos clonar, entre na pasta do repositorio e execute:
-```
+Apos clonar, entre na pasta do repositorio e execute:
+
+```bash
 npm install
 ```
 
-apos instalar as dependencias, execute o openchat usando o seguinte comando:
-```
+Apos instalar as dependencias, execute o openchat usando o seguinte comando:
+
+```bash
 npm run dev
 ```
 
+**Nota**: O código neste repositório está em desenvolvimento ativo. Versões estáveis e oficiais são disponibilizadas como executáveis (.exe) na página de [releases](https://github.com/antojunimaia-ui/openchat/releases/).
+
+## Contribua
+
 Se o OpenChat te ajudou, considere:
+
 - ⭐ Dar uma estrela no repositório
 - 🐛 Reportar bugs e sugerir melhorias
 - 🔄 Compartilhar com outros desenvolvedores
 
-<div align="center">
+---
 
-**"Não é apenas uma IA, é SUA IA - completamente livre!"**
+### "Não é apenas uma IA, é SUA IA - completamente livre!"
 
 Desenvolvido com ❤️ por Junior_7i | Versão 1.1.2 Beta
-
-</div>
 
 **IMPORTANTE**: Este software é fornecido "como está", sem garantias de qualquer tipo. O OpenChat é uma ferramenta de IA sem restrições que pode gerar conteúdo sobre qualquer tópico solicitado pelo usuário.
 
