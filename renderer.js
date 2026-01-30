@@ -55,6 +55,13 @@ class OpenChat {
                 nickname: '',
                 bio: ''
             },
+            voice: {
+                type: 'robotic',
+                elevenLabs: {
+                    apiKey: '',
+                    voiceId: ''
+                }
+            },
             pinnedChats: [] // Array de IDs de chats fixados
         };
         this.init();
@@ -2501,6 +2508,9 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             });
         }
 
+        // Setup Voice Settings
+        this.setupVoiceSettings();
+
         // Load saved settings
         this.loadSettings();
     }
@@ -2608,6 +2618,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             identity: {
                 nickname: document.getElementById('userNickname')?.value || '',
                 bio: document.getElementById('userBio')?.value || ''
+            },
+            voice: {
+                type: document.querySelector('input[name="voiceType"]:checked')?.value || 'robotic',
+                elevenLabs: {
+                    apiKey: document.getElementById('elevenLabsApiKey')?.value || '',
+                    voiceId: document.getElementById('elevenLabsVoiceId')?.value || ''
+                }
             }
         };
     }
@@ -2706,6 +2723,27 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             }
         }
 
+        // Populate voice settings
+        if (this.settings.voice) {
+            const voiceType = this.settings.voice.type || 'robotic';
+            const voiceTypeRadio = document.querySelector(`input[name="voiceType"][value="${voiceType}"]`);
+            if (voiceTypeRadio) voiceTypeRadio.checked = true;
+
+            const apiKeyInput = document.getElementById('elevenLabsApiKey');
+            if (apiKeyInput) apiKeyInput.value = this.settings.voice.elevenLabs?.apiKey || '';
+
+            // Store saved voice ID to select it after fetching
+            this.savedVoiceId = this.settings.voice.elevenLabs?.voiceId || '';
+
+            // Toggle ElevenLabs config visibility
+            this.toggleVoiceConfig(voiceType);
+
+            // If we have an API key and using ElevenLabs, fetch voices
+            if (voiceType === 'elevenlabs' && this.settings.voice.elevenLabs?.apiKey) {
+                this.fetchElevenLabsVoices();
+            }
+        }
+
         // Update status indicators
         this.updateApiStatus('gemini');
         this.updateApiStatus('mistral');
@@ -2793,6 +2831,140 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 <span>${feature}</span>
             </div>
         `).join('');
+    }
+
+    setupVoiceSettings() {
+        // Voice type toggle
+        document.querySelectorAll('input[name="voiceType"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.toggleVoiceConfig(e.target.value);
+                this.checkSettingsChanges();
+            });
+        });
+
+        // ElevenLabs API Key change
+        const apiKeyInput = document.getElementById('elevenLabsApiKey');
+        if (apiKeyInput) {
+            apiKeyInput.addEventListener('change', () => {
+                this.checkSettingsChanges();
+                // If key added/changed, try to fetch voices
+                if (apiKeyInput.value) {
+                    this.fetchElevenLabsVoices();
+                }
+            });
+        }
+
+        // Refresh voices button
+        const refreshBtn = document.getElementById('refreshVoicesBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.fetchElevenLabsVoices();
+            });
+        }
+
+        // Play preview button
+        const playBtn = document.getElementById('playVoicePreviewBtn');
+        if (playBtn) {
+            playBtn.addEventListener('click', () => {
+                this.playVoicePreview();
+            });
+        }
+
+        // Voice selection change
+        const voiceSelect = document.getElementById('elevenLabsVoiceId');
+        if (voiceSelect) {
+            voiceSelect.addEventListener('change', () => {
+                this.checkSettingsChanges();
+            });
+        }
+    }
+
+    toggleVoiceConfig(type) {
+        const configDiv = document.getElementById('elevenLabsConfig');
+        const roboticCard = document.getElementById('roboticVoiceCard');
+        const elevenLabsCard = document.getElementById('elevenLabsVoiceCard');
+
+        if (type === 'elevenlabs') {
+            if (configDiv) configDiv.style.display = 'block';
+            if (elevenLabsCard) elevenLabsCard.classList.add('selected');
+            if (roboticCard) roboticCard.classList.remove('selected');
+        } else {
+            if (configDiv) configDiv.style.display = 'none';
+            if (elevenLabsCard) elevenLabsCard.classList.remove('selected');
+            if (roboticCard) roboticCard.classList.add('selected');
+        }
+    }
+
+    async fetchElevenLabsVoices() {
+        const apiKey = document.getElementById('elevenLabsApiKey').value;
+        const voiceSelect = document.getElementById('elevenLabsVoiceId');
+        const refreshBtn = document.getElementById('refreshVoicesBtn');
+
+        if (!apiKey) return;
+
+        if (refreshBtn) refreshBtn.classList.add('loading');
+        if (voiceSelect) {
+            voiceSelect.innerHTML = '<option value="">Carregando vozes...</option>';
+            voiceSelect.disabled = true;
+        }
+
+        try {
+            const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+                headers: {
+                    'xi-api-key': apiKey
+                }
+            });
+
+            if (!response.ok) throw new Error('Falha ao buscar vozes');
+
+            const data = await response.json();
+            const voices = data.voices;
+
+            if (voiceSelect) {
+                voiceSelect.innerHTML = '';
+                voices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.voice_id;
+                    option.textContent = voice.name;
+                    if (voice.preview_url) {
+                        option.dataset.previewUrl = voice.preview_url;
+                    }
+                    voiceSelect.appendChild(option);
+                });
+
+                // Select saved voice if available
+                const savedId = this.savedVoiceId || this.settings.voice?.elevenLabs?.voiceId;
+                if (savedId) {
+                    voiceSelect.value = savedId;
+                }
+
+                voiceSelect.disabled = false;
+            }
+        } catch (error) {
+            console.error('Erro ao buscar vozes:', error);
+            if (voiceSelect) voiceSelect.innerHTML = '<option value="">Erro ao carregar vozes</option>';
+            this.showNotification('Erro ao carregar vozes do ElevenLabs: ' + error.message);
+        } finally {
+            if (refreshBtn) refreshBtn.classList.remove('loading');
+        }
+    }
+
+    playVoicePreview() {
+        const voiceSelect = document.getElementById('elevenLabsVoiceId');
+        if (!voiceSelect) return;
+
+        const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
+
+        if (!selectedOption) return;
+
+        const previewUrl = selectedOption.dataset.previewUrl;
+
+        if (previewUrl) {
+            const audio = new Audio(previewUrl);
+            audio.play().catch(e => console.error('Erro ao reproduzir áudio:', e));
+        } else {
+            this.showNotification('Prévia não disponível para esta voz');
+        }
     }
 
     updateBioCharCount() {
@@ -2963,6 +3135,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             identity: {
                 nickname: document.getElementById('userNickname')?.value || '',
                 bio: document.getElementById('userBio')?.value || ''
+            },
+            voice: {
+                type: document.querySelector('input[name="voiceType"]:checked')?.value || 'robotic',
+                elevenLabs: {
+                    apiKey: document.getElementById('elevenLabsApiKey')?.value || '',
+                    voiceId: document.getElementById('elevenLabsVoiceId')?.value || ''
+                }
             }
         };
 
@@ -3010,6 +3189,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 // Ensure identity settings exist
                 if (!parsedSettings.identity) {
                     parsedSettings.identity = this.settings.identity;
+                }
+                // Ensure voice settings exist
+                if (!parsedSettings.voice) {
+                    parsedSettings.voice = this.settings.voice;
                 }
                 // Ensure Z.AI API settings exist (backward compatibility)
                 if (!parsedSettings.apis) {

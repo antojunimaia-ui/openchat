@@ -828,6 +828,91 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Voice Configuration Section -->
+                            <div class="voice-config-section">
+                                <div class="panel-header">
+                                    <h3>Configuração de Voz</h3>
+                                    <p class="panel-description">Escolha a voz da IA para chamadas</p>
+                                </div>
+
+                                <div class="voice-options">
+                                    <div class="voice-option-card" id="roboticVoiceCard">
+                                        <label class="voice-radio">
+                                            <input type="radio" name="voiceType" value="robotic" checked>
+                                            <div class="voice-card-content">
+                                                <div class="voice-icon">🤖</div>
+                                                <div class="voice-info">
+                                                    <h4>Voz Robótica</h4>
+                                                    <p>Voz padrão do sistema (gratuita)</p>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="voice-option-card" id="elevenLabsVoiceCard">
+                                        <label class="voice-radio">
+                                            <input type="radio" name="voiceType" value="elevenlabs">
+                                            <div class="voice-card-content">
+                                                <div class="voice-icon">🗣️</div>
+                                                <div class="voice-info">
+                                                    <h4>ElevenLabs</h4>
+                                                    <p>Vozes realistas de alta qualidade</p>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- ElevenLabs Configuration (Hidden by default) -->
+                                <div class="elevenlabs-config" id="elevenLabsConfig" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="elevenLabsApiKey">API Key do ElevenLabs</label>
+                                        <div class="input-with-button">
+                                            <input type="password" id="elevenLabsApiKey"
+                                                placeholder="Insira sua API Key" class="api-input">
+                                            <button type="button" class="toggle-password-btn"
+                                                data-target="elevenLabsApiKey">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <p class="field-hint">Obtenha sua chave em <a href="#"
+                                                onclick="openExternalLink('https://elevenlabs.io')">elevenlabs.io</a>
+                                        </p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="elevenLabsVoiceId">Voz</label>
+                                        <div class="voice-select-container">
+                                            <select id="elevenLabsVoiceId" class="voice-select">
+                                                <option value="">Carregando vozes...</option>
+                                            </select>
+                                            <button type="button" class="play-voice-btn" id="playVoicePreviewBtn"
+                                                title="Ouvir prévia">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2">
+                                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                                </svg>
+                                            </button>
+                                            <button type="button" class="refresh-voices-btn" id="refreshVoicesBtn"
+                                                title="Atualizar vozes">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2">
+                                                    <path d="M23 4v6h-6"></path>
+                                                    <path d="M1 20v-6h6"></path>
+                                                    <path
+                                                        d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Models Section -->

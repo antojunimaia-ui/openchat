@@ -18,6 +18,7 @@ class VoiceCallManager {
         // Speech Synthesis (AI voice output)
         this.synthesis = window.speechSynthesis;
         this.currentUtterance = null;
+        this.currentAudio = null; // For ElevenLabs/Audio playback
 
         // Carrega vozes
         this.voices = [];
@@ -178,8 +179,8 @@ class VoiceCallManager {
         // Stop voice recognition
         this.stopVoiceRecognition();
 
-        // Stop any ongoing speech
-        this.synthesis.cancel();
+        // Stop speech
+        this.stopAudio();
 
         // Stop call duration timer
         if (this.callDurationInterval) {
@@ -215,7 +216,7 @@ class VoiceCallManager {
 
         if (this.isAIMuted) {
             this.muteAIBtn.classList.add('muted');
-            this.synthesis.cancel(); // Stop current speech
+            this.stopAudio(); // Stop current speech
             this.voiceStatusText.textContent = 'IA Mutada';
         } else {
             this.muteAIBtn.classList.remove('muted');
@@ -335,12 +336,116 @@ class VoiceCallManager {
         }, 1000); // Give it a second to process
     }
 
-    speakAI(text) {
+    stopAudio() {
+        // Stop robotic voice
+        if (this.synthesis) {
+            this.synthesis.cancel();
+        }
+
+        // Stop Audio object (ElevenLabs)
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+        }
+
+        this.voiceOrb.classList.remove('speaking');
+        this.voiceOrb.classList.remove('thinking');
+    }
+
+    async speakAI(text) {
         if (this.isAIMuted || !text) return;
 
-        // Cancel any ongoing speech
-        this.synthesis.cancel();
+        // Stop any ongoing speech
+        this.stopAudio();
 
+        // Check for Voice Settings in OpenChat
+        let voiceSettings = null;
+        if (window.openchat && window.openchat.settings && window.openchat.settings.voice) {
+            voiceSettings = window.openchat.settings.voice;
+        }
+
+        // Try ElevenLabs if configured
+        if (voiceSettings && voiceSettings.type === 'elevenlabs' &&
+            voiceSettings.elevenLabs && voiceSettings.elevenLabs.apiKey && voiceSettings.elevenLabs.voiceId) {
+
+            const success = await this.speakElevenLabs(
+                text,
+                voiceSettings.elevenLabs.apiKey,
+                voiceSettings.elevenLabs.voiceId
+            );
+
+            if (success) return; // If successful, we're done
+            console.warn('Falling back to robotic voice');
+        }
+
+        // Fallback to Robotic Voice (Web Speech API)
+        this.speakRobotic(text);
+    }
+
+    async speakElevenLabs(text, apiKey, voiceId) {
+        try {
+            console.log('Generating ElevenLabs audio...');
+            this.voiceOrb.classList.add('thinking'); // Visual feedback for loading
+
+            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+                method: 'POST',
+                headers: {
+                    'xi-api-key': apiKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: text,
+                    model_id: "eleven_multilingual_v2",
+                    voice_settings: {
+                        stability: 0.5,
+                        similarity_boost: 0.75
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail?.message || 'ElevenLabs API Error');
+            }
+
+            const blob = await response.blob();
+            const audioUrl = URL.createObjectURL(blob);
+
+            // If user muted while generating, don't play
+            if (this.isAIMuted || !this.isCallActive) return true;
+
+            const audio = new Audio(audioUrl);
+            this.currentAudio = audio;
+
+            this.voiceOrb.classList.remove('thinking');
+
+            audio.onplay = () => {
+                this.voiceOrb.classList.add('speaking');
+            };
+
+            audio.onended = () => {
+                this.voiceOrb.classList.remove('speaking');
+                URL.revokeObjectURL(audioUrl);
+                this.currentAudio = null;
+            };
+
+            audio.onerror = (e) => {
+                console.error('Audio playback error:', e);
+                this.voiceOrb.classList.remove('speaking');
+                this.voiceOrb.classList.remove('thinking');
+            };
+
+            await audio.play();
+            return true;
+
+        } catch (error) {
+            console.error('ElevenLabs TTS failed:', error);
+            this.voiceOrb.classList.remove('thinking');
+            return false; // Return false to trigger fallback
+        }
+    }
+
+    speakRobotic(text) {
         // Create new utterance
         this.currentUtterance = new SpeechSynthesisUtterance(text);
 

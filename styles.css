@@ -4642,3 +4642,151 @@ input:checked+.toggle-slider:before {
 .chat-item.architect-chat .chat-title::before {
     content: '🏗️ ';
 }
+
+/* Voice Configuration Styles */
+.voice-config-section {
+    margin-top: 32px;
+}
+
+.voice-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.voice-option-card {
+    background: #111111;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.voice-option-card:hover {
+    border-color: #555555;
+    background: #1a1a1a;
+}
+
+.voice-radio {
+    display: block;
+    cursor: pointer;
+    padding: 16px;
+}
+
+.voice-radio input {
+    display: none;
+}
+
+.voice-card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.voice-icon {
+    font-size: 24px;
+}
+
+.voice-info h4 {
+    margin: 0 0 4px 0;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.voice-info p {
+    margin: 0;
+    color: #999999;
+    font-size: 12px;
+}
+
+.voice-option-card.selected {
+    border-color: #0066cc;
+    background: rgba(0, 102, 204, 0.1);
+}
+
+.voice-option-card.selected .voice-info h4 {
+    color: #0066cc;
+}
+
+.elevenlabs-config {
+    background: #111111;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+.voice-select-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.voice-select {
+    flex: 1;
+    background: #000000;
+    border: 1px solid #444444;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #ffffff;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.voice-select:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.play-voice-btn,
+.refresh-voices-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #444444;
+    background: #1a1a1a;
+    border-radius: 6px;
+    color: #cccccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.play-voice-btn:hover,
+.refresh-voices-btn:hover {
+    border-color: #0066cc;
+    color: #0066cc;
+    background: rgba(0, 102, 204, 0.1);
+}
+
+.play-voice-btn svg,
+.refresh-voices-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.refresh-voices-btn.loading svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 600px) {
+    .voice-options {
+        grid-template-columns: 1fr;
+    }
+}
