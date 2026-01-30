@@ -1821,6 +1821,10 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+.api-icon.openrouter, .model-icon.openrouter {
+    background: linear-gradient(135deg, #2294ff 0%, #4facfe 100%);
+}
+
 .api-details h4 {
     color: #ffffff;
     margin: 0 0 4px 0;

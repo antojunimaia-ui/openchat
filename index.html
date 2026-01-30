@@ -473,6 +473,30 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="provider-info">
+                                        <div class="provider-header">
+                                            <div class="api-icon openrouter">OR</div>
+                                            <div class="provider-details">
+                                                <h5>Open Router</h5>
+                                                <p class="provider-desc">Acesso a centenas de modelos via uma única API
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="provider-steps">
+                                            <ol>
+                                                <li>Acesse <a href="#"
+                                                        onclick="openExternalLink('https://openrouter.ai/keys')"
+                                                        class="api-link">Open Router Keys</a></li>
+                                                <li>Crie uma conta ou faça login</li>
+                                                <li>Clique em "Create Key"</li>
+                                                <li>Copie a chave gerada</li>
+                                            </ol>
+                                            <div class="provider-note">
+                                                <strong>💡 Dica:</strong> O Open Router permite usar modelos da OpenAI,
+                                                Anthropic, Meta e muitos outros
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -714,6 +738,71 @@
                                         </button>
                                     </div>
                                 </div>
+
+                                <!-- Open Router API -->
+                                <div class="api-config">
+                                    <div class="api-header">
+                                        <div class="api-info">
+                                            <div class="api-icon openrouter">OR</div>
+                                            <div class="api-details">
+                                                <h4>Open Router</h4>
+                                                <span class="api-status" id="openrouterStatus">Não configurado</span>
+                                            </div>
+                                        </div>
+                                        <div class="api-toggle">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="openrouterEnabled">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="api-form" id="openrouterForm">
+                                        <div class="form-group">
+                                            <label for="openrouterApiKey">Chave da API</label>
+                                            <div class="input-with-button">
+                                                <input type="password" id="openrouterApiKey"
+                                                    placeholder="Insira sua chave da API do Open Router"
+                                                    class="api-input">
+                                                <button type="button" class="toggle-password-btn"
+                                                    data-target="openrouterApiKey">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="openrouterModel">Modelo</label>
+                                            <div class="select-with-button">
+                                                <select id="openrouterModel" class="model-select">
+                                                    <option value="">Carregando modelos...</option>
+                                                </select>
+                                                <button type="button" class="refresh-models-btn"
+                                                    id="refreshOpenRouterModelsBtn" title="Atualizar modelos">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2">
+                                                        <path d="M23 4v6h-6"></path>
+                                                        <path d="M1 20v-6h6"></path>
+                                                        <path
+                                                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15">
+                                                        </path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="test-api-btn" id="testOpenrouterBtn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <polyline points="9,11 12,14 22,4"></polyline>
+                                                <path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11">
+                                                </path>
+                                            </svg>
+                                            Testar Conexão
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -771,6 +860,23 @@
                                             </div>
                                             <div class="model-status">
                                                 <div class="status-indicator" id="zaiIndicator"></div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="model-card" data-model="openrouter">
+                                    <label class="model-radio">
+                                        <input type="radio" name="activeModel" value="openrouter" id="selectOpenrouter">
+                                        <div class="model-card-content">
+                                            <div class="model-icon openrouter">OR</div>
+                                            <div class="model-info">
+                                                <span class="model-name">Open Router</span>
+                                                <span class="model-description">Acesse centenas de modelos como Claude,
+                                                    GPT-4, Llama e muito mais</span>
+                                            </div>
+                                            <div class="model-status">
+                                                <div class="status-indicator" id="openrouterIndicator"></div>
                                             </div>
                                         </div>
                                     </label>

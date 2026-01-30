@@ -41,7 +41,7 @@ app.whenReady().then(() => {
   // Inicializar filtro de conteúdo (JavaScript puro - sem dependências)
   contentFilter = new ContentFilter();
   console.log('✅ Content filter inicializado (JavaScript)');
-  
+
   createWindow();
 });
 
@@ -69,10 +69,10 @@ ipcMain.handle('read-system-prompt', async () => {
   } catch (error) {
     console.error('Erro ao ler system prompt:', error);
     // Retorna prompt padrão se não conseguir ler o arquivo
-    return { 
-      success: false, 
+    return {
+      success: false,
       prompt: 'Você é um assistente útil e amigável. Responda de forma clara e concisa, sempre tentando ser prestativo e educativo.',
-      error: error.message 
+      error: error.message
     };
   }
 });
@@ -95,20 +95,20 @@ ipcMain.handle('save-memory', async (event, memoryData) => {
   try {
     const os = require('os');
     const memoriesDir = path.join(os.homedir(), '.openchat', 'memories');
-    
+
     if (!require('fs').existsSync(memoriesDir)) {
       require('fs').mkdirSync(memoriesDir, { recursive: true });
     }
-    
+
     const memoriesFile = path.join(memoriesDir, 'memories.json');
     let memories = [];
-    
+
     // Carregar memórias existentes
     if (require('fs').existsSync(memoriesFile)) {
       const data = await fs.readFile(memoriesFile, 'utf8');
       memories = JSON.parse(data);
     }
-    
+
     // Adicionar nova memória
     const newMemory = {
       id: 'mem-' + Date.now(),
@@ -118,12 +118,12 @@ ipcMain.handle('save-memory', async (event, memoryData) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    
+
     memories.push(newMemory);
-    
+
     // Salvar
     await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
-    
+
     return { success: true, memory: newMemory };
   } catch (error) {
     console.error('Erro ao salvar memória:', error);
@@ -136,24 +136,24 @@ ipcMain.handle('update-memory', async (event, memoryId, newContent) => {
   try {
     const os = require('os');
     const memoriesFile = path.join(os.homedir(), '.openchat', 'memories', 'memories.json');
-    
+
     if (!require('fs').existsSync(memoriesFile)) {
       return { success: false, error: 'Nenhuma memória encontrada' };
     }
-    
+
     const data = await fs.readFile(memoriesFile, 'utf8');
     let memories = JSON.parse(data);
-    
+
     const memoryIndex = memories.findIndex(m => m.id === memoryId);
     if (memoryIndex === -1) {
       return { success: false, error: 'Memória não encontrada' };
     }
-    
+
     memories[memoryIndex].content = newContent;
     memories[memoryIndex].updatedAt = new Date().toISOString();
-    
+
     await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
-    
+
     return { success: true, memory: memories[memoryIndex] };
   } catch (error) {
     console.error('Erro ao atualizar memória:', error);
@@ -166,14 +166,14 @@ ipcMain.handle('get-memories', async () => {
   try {
     const os = require('os');
     const memoriesFile = path.join(os.homedir(), '.openchat', 'memories', 'memories.json');
-    
+
     if (!require('fs').existsSync(memoriesFile)) {
       return { success: true, memories: [] };
     }
-    
+
     const data = await fs.readFile(memoriesFile, 'utf8');
     const memories = JSON.parse(data);
-    
+
     return { success: true, memories };
   } catch (error) {
     console.error('Erro ao buscar memórias:', error);
@@ -186,18 +186,18 @@ ipcMain.handle('delete-memory', async (event, memoryId) => {
   try {
     const os = require('os');
     const memoriesFile = path.join(os.homedir(), '.openchat', 'memories', 'memories.json');
-    
+
     if (!require('fs').existsSync(memoriesFile)) {
       return { success: false, error: 'Nenhuma memória encontrada' };
     }
-    
+
     const data = await fs.readFile(memoriesFile, 'utf8');
     let memories = JSON.parse(data);
-    
+
     memories = memories.filter(m => m.id !== memoryId);
-    
+
     await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
-    
+
     return { success: true };
   } catch (error) {
     console.error('Erro ao deletar memória:', error);
@@ -243,6 +243,30 @@ ipcMain.handle('open-external', async (event, url) => {
   }
 });
 
+// IPC Handler for fetching Open Router models
+ipcMain.handle('fetch-openrouter-models', async (event, apiKey) => {
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://openchat.ai', // Optional
+        'X-Title': 'OpenChat', // Optional
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || response.statusText);
+    }
+
+    const data = await response.json();
+    return { success: true, models: data.data };
+  } catch (error) {
+    console.error('Error fetching Open Router models:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Função para carregar o system prompt
 async function loadSystemPrompt() {
   try {
@@ -260,14 +284,14 @@ async function loadMemories() {
   try {
     const os = require('os');
     const memoriesFile = path.join(os.homedir(), '.openchat', 'memories', 'memories.json');
-    
+
     if (!require('fs').existsSync(memoriesFile)) {
       return { success: true, memories: [] };
     }
-    
+
     const data = await fs.readFile(memoriesFile, 'utf8');
     const memories = JSON.parse(data);
-    
+
     return { success: true, memories };
   } catch (error) {
     console.error('Erro ao carregar memórias:', error);
@@ -280,11 +304,11 @@ async function processFunctionCalls(responseText, event) {
   console.log('=== PROCESSANDO FUNCTION CALLS ===');
   console.log('Texto completo recebido:', responseText);
   console.log('Tamanho do texto:', responseText.length);
-  
+
   // Verificar se contém [FUNCTION_CALL]
   const hasFC = responseText.includes('[FUNCTION_CALL]');
   console.log('Contém [FUNCTION_CALL]?', hasFC);
-  
+
   if (hasFC) {
     const startIndex = responseText.indexOf('[FUNCTION_CALL]');
     const endIndex = responseText.indexOf('[/FUNCTION_CALL]');
@@ -294,19 +318,19 @@ async function processFunctionCalls(responseText, event) {
       console.log('Conteúdo entre tags:', responseText.substring(startIndex, endIndex + 16));
     }
   }
-  
+
   // Regex mais robusta que captura function calls em qualquer formato
   const functionCallRegex = /\[FUNCTION_CALL\]\s*([\s\S]*?)\s*\[\/FUNCTION_CALL\]/gi;
   const calls = [];
   let processedText = responseText;
-  
+
   // Encontrar todas as matches primeiro
   const matches = [];
   let match;
-  
+
   // Reset regex
   functionCallRegex.lastIndex = 0;
-  
+
   while ((match = functionCallRegex.exec(responseText)) !== null) {
     matches.push({
       fullMatch: match[0],
@@ -314,70 +338,70 @@ async function processFunctionCalls(responseText, event) {
       index: match.index
     });
   }
-  
+
   console.log(`Encontradas ${matches.length} function calls na resposta`);
-  
+
   // Se não encontrou com regex mas tem o texto, tentar manualmente
   if (matches.length === 0 && hasFC) {
     console.log('ATENÇÃO: Texto contém [FUNCTION_CALL] mas regex não encontrou!');
     console.log('Tentando extração manual...');
-    
+
     const startTag = '[FUNCTION_CALL]';
     const endTag = '[/FUNCTION_CALL]';
     let startIndex = responseText.indexOf(startTag);
-    
+
     while (startIndex !== -1) {
       const endIndex = responseText.indexOf(endTag, startIndex);
       if (endIndex !== -1) {
         const fullMatch = responseText.substring(startIndex, endIndex + endTag.length);
         const jsonContent = responseText.substring(startIndex + startTag.length, endIndex).trim();
-        
+
         matches.push({
           fullMatch: fullMatch,
           jsonContent: jsonContent,
           index: startIndex
         });
-        
+
         console.log('Match manual encontrado:', { fullMatch: fullMatch.substring(0, 100), jsonContent: jsonContent.substring(0, 100) });
-        
+
         startIndex = responseText.indexOf(startTag, endIndex);
       } else {
         break;
       }
     }
-    
+
     console.log(`Extração manual encontrou ${matches.length} function calls`);
   }
-  
+
   // Processar cada match (em ordem reversa para não afetar os índices)
   for (let i = matches.length - 1; i >= 0; i--) {
     const matchData = matches[i];
     try {
       console.log('Processando function call:', matchData.jsonContent.substring(0, 100));
-      
+
       const functionData = JSON.parse(matchData.jsonContent);
       const functionName = functionData.function;
       const args = functionData.arguments;
-      
+
       console.log('Function call detectada:', functionName, args);
-      
+
       let result;
       if (functionName === 'save_memory') {
         const os = require('os');
         const memoriesDir = path.join(os.homedir(), '.openchat', 'memories');
-        
+
         if (!require('fs').existsSync(memoriesDir)) {
           require('fs').mkdirSync(memoriesDir, { recursive: true });
         }
-        
+
         const memoriesFile = path.join(memoriesDir, 'memories.json');
         let memories = [];
-        
+
         if (require('fs').existsSync(memoriesFile)) {
           const data = await fs.readFile(memoriesFile, 'utf8');
           memories = JSON.parse(data);
         }
-        
+
         const newMemory = {
           id: 'mem-' + Date.now() + '-' + i,
           content: args.content,
@@ -386,25 +410,25 @@ async function processFunctionCalls(responseText, event) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
-        
+
         memories.push(newMemory);
         await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
-        
+
         result = { success: true, memory: newMemory };
         console.log('Memória salva com sucesso:', newMemory.id);
       } else if (functionName === 'update_memory') {
         const os = require('os');
         const memoriesFile = path.join(os.homedir(), '.openchat', 'memories', 'memories.json');
-        
+
         if (require('fs').existsSync(memoriesFile)) {
           const data = await fs.readFile(memoriesFile, 'utf8');
           let memories = JSON.parse(data);
-          
+
           const memoryIndex = memories.findIndex(m => m.id === args.memory_id);
           if (memoryIndex !== -1) {
             memories[memoryIndex].content = args.new_content;
             memories[memoryIndex].updatedAt = new Date().toISOString();
-            
+
             await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
             result = { success: true, memory: memories[memoryIndex] };
             console.log('Memória atualizada com sucesso:', args.memory_id);
@@ -437,13 +461,13 @@ async function processFunctionCalls(responseText, event) {
           result = { success: false, error: 'Erro ao atualizar documento' };
         }
       }
-      
+
       calls.unshift({ // unshift porque estamos processando de trás pra frente
         function: functionName,
         arguments: args,
         result: result
       });
-      
+
       // Add visual indicator for architect functions
       let indicator = '';
       if (functionName === 'get_architect_document') {
@@ -451,14 +475,14 @@ async function processFunctionCalls(responseText, event) {
       } else if (functionName === 'update_architect_document') {
         indicator = '<div class="function-indicator writing-document"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Escrevendo documento</span></div>';
       }
-      
+
       // Remover a chamada de função do texto processado e adicionar indicador
       const before = processedText.substring(0, matchData.index);
       const after = processedText.substring(matchData.index + matchData.fullMatch.length);
       processedText = before + indicator + after;
-      
+
       console.log('Function call removida do texto e indicador adicionado');
-      
+
     } catch (error) {
       console.error('Erro ao processar function call:', error);
       console.error('JSON que causou erro:', matchData.jsonContent);
@@ -468,16 +492,16 @@ async function processFunctionCalls(responseText, event) {
       processedText = before + after;
     }
   }
-  
+
   // Limpar espaços extras e linhas vazias
   processedText = processedText
     .replace(/\n\n\n+/g, '\n\n') // Múltiplas linhas vazias -> 2 linhas
     .replace(/^\s+|\s+$/g, '') // Trim
     .trim();
-  
+
   console.log('Texto final processado (primeiros 200 chars):', processedText.substring(0, 200));
   console.log('=== FIM DO PROCESSAMENTO ===');
-  
+
   return {
     text: processedText,
     calls: calls
@@ -487,13 +511,13 @@ async function processFunctionCalls(responseText, event) {
 // IPC handlers para comunicação com o renderer
 ipcMain.handle('send-message', async (event, messageData) => {
   console.log('Mensagem recebida:', messageData);
-  
+
   try {
     // ===== FILTRO DE CONTEÚDO =====
     // Verificar mensagem do usuário antes de processar
     if (contentFilter) {
       const filterResult = contentFilter.analyze(messageData.text);
-      
+
       if (!filterResult.allowed) {
         console.log('🔒 Mensagem bloqueada:', filterResult.reason);
         return {
@@ -505,11 +529,11 @@ ipcMain.handle('send-message', async (event, messageData) => {
         };
       }
     }
-    
+
     // Carregar system prompt diretamente do arquivo
     const systemPrompt = await loadSystemPrompt();
     console.log('System prompt carregado no main.js. Tamanho:', systemPrompt.length, 'caracteres');
-    
+
     // Carregar memórias
     const memoriesResult = await loadMemories();
     let memoriesPrompt = '';
@@ -528,14 +552,14 @@ ipcMain.handle('send-message', async (event, messageData) => {
       memoriesPrompt += '- Se o usuário apenas cumprimentar, responda normalmente SEM mencionar memórias\n';
       memoriesPrompt += '=== FIM DO CONTEXTO ===\n';
     }
-    
+
     // Buscar configurações do localStorage via renderer
     const settings = await getSettingsFromRenderer(event);
-    
+
     if (!settings || !settings.apis) {
-      return { 
-        success: false, 
-        error: 'Configurações de API não encontradas. Configure uma API nas configurações.' 
+      return {
+        success: false,
+        error: 'Configurações de API não encontradas. Configure uma API nas configurações.'
       };
     }
 
@@ -543,9 +567,9 @@ ipcMain.handle('send-message', async (event, messageData) => {
     const apiConfig = settings.apis[activeModel];
 
     if (!apiConfig || !apiConfig.enabled || !apiConfig.apiKey) {
-      return { 
-        success: false, 
-        error: `API ${activeModel} não configurada. Verifique as configurações.` 
+      return {
+        success: false,
+        error: `API ${activeModel} não configurada. Verifique as configurações.`
       };
     }
 
@@ -554,7 +578,7 @@ ipcMain.handle('send-message', async (event, messageData) => {
     if (messageData.personalityPrompt) {
       finalSystemPrompt += '\n\nINSTRUÇÕES DE PERSONALIDADE:\n' + messageData.personalityPrompt;
     }
-    
+
     // Adicionar instruções de Function Calling para memórias
     finalSystemPrompt += '\n\n=== SISTEMA DE MEMÓRIA SILENCIOSO ===\n';
     finalSystemPrompt += 'Você tem um sistema de memória. Use as funções abaixo SILENCIOSAMENTE:\n\n';
@@ -585,7 +609,7 @@ ipcMain.handle('send-message', async (event, messageData) => {
     if (messageData.isArchitectMode) {
       finalSystemPrompt += '\n\n=== MODO ARQUITETO - COLABORAÇÃO EM DOCUMENTO ===\n';
       finalSystemPrompt += 'Você está no Modo Arquiteto! O usuário está trabalhando em um documento (PRD, especificação, projeto, etc.).\n\n';
-      
+
       // Incluir o documento atual no contexto
       if (messageData.architectDocument) {
         finalSystemPrompt += '📄 DOCUMENTO ATUAL:\n';
@@ -593,7 +617,7 @@ ipcMain.handle('send-message', async (event, messageData) => {
         finalSystemPrompt += messageData.architectDocument;
         finalSystemPrompt += '\n```\n\n';
       }
-      
+
       finalSystemPrompt += 'FUNÇÕES DISPONÍVEIS:\n\n';
       finalSystemPrompt += '1. get_architect_document(): Lê o documento atual completo\n';
       finalSystemPrompt += '   - Use quando precisar ver o conteúdo atual do documento\n';
@@ -638,8 +662,10 @@ ipcMain.handle('send-message', async (event, messageData) => {
       response = await callMistralAPI(apiConfig, messageData, finalSystemPrompt);
     } else if (activeModel === 'zai') {
       response = await callZaiAPI(apiConfig, messageData, finalSystemPrompt);
+    } else if (activeModel === 'openrouter') {
+      response = await callOpenRouterAPI(apiConfig, messageData, finalSystemPrompt);
     }
-    
+
     // Processar Function Calls na resposta
     console.log('Resposta original da API (primeiros 500 chars):', response.substring(0, 500));
     const processedResponse = await processFunctionCalls(response, event);
@@ -648,16 +674,16 @@ ipcMain.handle('send-message', async (event, messageData) => {
 
     // Check if get_architect_document was called - need to continue response
     const hasGetDocument = processedResponse.calls.some(call => call.function === 'get_architect_document');
-    
+
     if (hasGetDocument && messageData.isArchitectMode) {
       console.log('🏗️ get_architect_document detectado - fazendo segunda chamada com documento injetado');
-      
+
       // Get the document result
       const documentCall = processedResponse.calls.find(call => call.function === 'get_architect_document');
       const documentContent = documentCall.result?.document || '';
-      
+
       console.log('📄 Documento obtido, tamanho:', documentContent.length);
-      
+
       // Only continue if there's actual document content
       if (!documentContent || documentContent.trim().length === 0) {
         console.log('⚠️ Documento vazio, não fazendo segunda chamada');
@@ -668,7 +694,7 @@ ipcMain.handle('send-message', async (event, messageData) => {
           timestamp: Date.now()
         };
       }
-      
+
       // Build a simpler continuation message
       const continuationText = `Baseado no documento que você acabou de ler, continue sua análise e resposta ao usuário.
 
@@ -678,7 +704,7 @@ ${documentContent}
 MENSAGEM DO USUÁRIO: ${messageData.text}
 
 Continue sua resposta de forma natural:`;
-      
+
       // Prepare continuation message data - simpler approach
       const continuationMessageData = {
         text: continuationText,
@@ -688,11 +714,11 @@ Continue sua resposta de forma natural:`;
         personalityPrompt: messageData.personalityPrompt,
         isArchitectMode: false // Don't trigger architect mode again
       };
-      
+
       // Make second API call with simpler system prompt
       let continuationResponse;
       const simpleSystemPrompt = systemPrompt + (messageData.personalityPrompt ? '\n\n' + messageData.personalityPrompt : '');
-      
+
       try {
         if (activeModel === 'gemini') {
           continuationResponse = await callGeminiAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
@@ -700,17 +726,19 @@ Continue sua resposta de forma natural:`;
           continuationResponse = await callMistralAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
         } else if (activeModel === 'zai') {
           continuationResponse = await callZaiAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
+        } else if (activeModel === 'openrouter') {
+          continuationResponse = await callOpenRouterAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
         }
-        
+
         // Process continuation response
         const processedContinuation = await processFunctionCalls(continuationResponse, event);
-        
+
         // Combine responses
         const combinedText = processedResponse.text.trim() + '\n\n' + processedContinuation.text.trim();
         const combinedCalls = [...processedResponse.calls, ...processedContinuation.calls];
-        
+
         console.log('✅ Resposta combinada com documento injetado');
-        
+
         return {
           success: true,
           response: combinedText,
@@ -729,18 +757,18 @@ Continue sua resposta de forma natural:`;
       }
     }
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       response: processedResponse.text,
       functionCalls: processedResponse.calls,
-      timestamp: Date.now() 
+      timestamp: Date.now()
     };
 
   } catch (error) {
     console.error('Erro ao processar mensagem:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Erro interno do servidor' 
+    return {
+      success: false,
+      error: error.message || 'Erro interno do servidor'
     };
   }
 });
@@ -785,19 +813,19 @@ ipcMain.handle('save-chat', async (event, chatData) => {
     const fs = require('fs');
     const path = require('path');
     const os = require('os');
-    
+
     // Create chats directory if it doesn't exist
     const chatsDir = path.join(os.homedir(), '.openchat', 'chats');
-    
+
     if (!fs.existsSync(chatsDir)) {
       fs.mkdirSync(chatsDir, { recursive: true });
     }
-    
+
     // Save chat to file
     const chatFile = path.join(chatsDir, `${chatData.id}.json`);
-    
+
     fs.writeFileSync(chatFile, JSON.stringify(chatData, null, 2));
-    
+
     return { success: true };
   } catch (error) {
     console.error('Erro ao salvar chat:', error);
@@ -810,9 +838,9 @@ ipcMain.handle('load-chat', async (event, chatId) => {
     const fs = require('fs');
     const path = require('path');
     const os = require('os');
-    
+
     const chatFile = path.join(os.homedir(), '.openchat', 'chats', `${chatId}.json`);
-    
+
     if (fs.existsSync(chatFile)) {
       const chatData = JSON.parse(fs.readFileSync(chatFile, 'utf8'));
       return { success: true, chat: chatData };
@@ -830,16 +858,16 @@ ipcMain.handle('get-chat-list', async () => {
     const fs = require('fs');
     const path = require('path');
     const os = require('os');
-    
+
     const chatsDir = path.join(os.homedir(), '.openchat', 'chats');
-    
+
     if (!fs.existsSync(chatsDir)) {
       return { success: true, chats: [] };
     }
-    
+
     const files = fs.readdirSync(chatsDir);
     const chats = [];
-    
+
     for (const file of files) {
       if (file.endsWith('.json')) {
         try {
@@ -856,10 +884,10 @@ ipcMain.handle('get-chat-list', async () => {
         }
       }
     }
-    
+
     // Sort by updatedAt (most recent first)
     chats.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    
+
     return { success: true, chats };
   } catch (error) {
     console.error('Erro ao listar chats:', error);
@@ -872,9 +900,9 @@ ipcMain.handle('delete-chat', async (event, chatId) => {
     const fs = require('fs');
     const path = require('path');
     const os = require('os');
-    
+
     const chatFile = path.join(os.homedir(), '.openchat', 'chats', `${chatId}.json`);
-    
+
     if (fs.existsSync(chatFile)) {
       fs.unlinkSync(chatFile);
       return { success: true };
@@ -890,21 +918,21 @@ ipcMain.handle('delete-chat', async (event, chatId) => {
 // Função para chamar a API do Gemini
 async function callGeminiAPI(apiConfig, messageData, systemPrompt) {
   // Usar fetch nativo do Node.js (disponível no Electron 28+)
-  
+
   console.log('Chamando Gemini API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
-  
+
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${apiConfig.model}:generateContent?key=${apiConfig.apiKey}`;
-  
+
   // Build conversation history
   const contents = [];
-  
+
   // Add system prompt as first message
   if (systemPrompt) {
     contents.push({
       parts: [{ text: systemPrompt }]
     });
   }
-  
+
   // Add conversation history
   if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
     messageData.conversationHistory.forEach(msg => {
@@ -921,7 +949,7 @@ async function callGeminiAPI(apiConfig, messageData, systemPrompt) {
       }
     });
   }
-  
+
   // Add current user message
   contents.push({
     role: 'user',
@@ -962,7 +990,7 @@ async function callGeminiAPI(apiConfig, messageData, systemPrompt) {
   }
 
   const data = await response.json();
-  
+
   if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
     throw new Error('Resposta inválida da API Gemini');
   }
@@ -973,14 +1001,14 @@ async function callGeminiAPI(apiConfig, messageData, systemPrompt) {
 // Função para chamar a API do Mistral com streaming
 async function callMistralAPI(apiConfig, messageData, systemPrompt) {
   // Usar fetch nativo do Node.js (disponível no Electron 28+)
-  
+
   console.log('Chamando Mistral API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
-  
+
   const url = 'https://api.mistral.ai/v1/chat/completions';
-  
+
   // Build conversation messages
   const messages = [];
-  
+
   // Add system prompt
   if (systemPrompt) {
     messages.push({
@@ -988,7 +1016,7 @@ async function callMistralAPI(apiConfig, messageData, systemPrompt) {
       content: systemPrompt
     });
   }
-  
+
   // Add conversation history
   if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
     messageData.conversationHistory.forEach(msg => {
@@ -1005,13 +1033,13 @@ async function callMistralAPI(apiConfig, messageData, systemPrompt) {
       }
     });
   }
-  
+
   // Add current user message
   messages.push({
     role: 'user',
     content: messageData.text
   });
-  
+
   const requestBody = {
     model: apiConfig.model,
     messages: messages,
@@ -1038,14 +1066,14 @@ async function callMistralAPI(apiConfig, messageData, systemPrompt) {
   return new Promise(async (resolve, reject) => {
     let fullResponse = '';
     let buffer = ''; // Buffer para acumular linhas parciais
-    
+
     try {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      
+
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) {
           if (fullResponse) {
             resolve(fullResponse);
@@ -1054,32 +1082,32 @@ async function callMistralAPI(apiConfig, messageData, systemPrompt) {
           }
           break;
         }
-        
+
         // Decodificar o chunk e adicionar ao buffer
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
-        
+
         // Processar linhas completas do buffer
         const lines = buffer.split('\n');
-        
+
         // A última linha pode estar incompleta, então guardamos no buffer
         buffer = lines.pop() || '';
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             if (data === '[DONE]') {
               resolve(fullResponse);
               return;
             }
-            
+
             try {
               const parsed = JSON.parse(data);
               if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
                 const content = parsed.choices[0].delta.content;
                 fullResponse += content;
-                
+
                 // Send streaming update to renderer
                 if (mainWindow) {
                   mainWindow.webContents.send('streaming-update', content);
@@ -1092,7 +1120,7 @@ async function callMistralAPI(apiConfig, messageData, systemPrompt) {
           }
         }
       }
-      
+
       // Send completion event
       if (mainWindow) {
         mainWindow.webContents.send('streaming-complete');
@@ -1103,15 +1131,15 @@ async function callMistralAPI(apiConfig, messageData, systemPrompt) {
   });
 }
 
-// Função para chamar a API do Z.AI GLM com streaming
-async function callZaiAPI(apiConfig, messageData, systemPrompt) {
-  console.log('Chamando Z.AI GLM API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
-  
-  const url = 'https://api.z.ai/api/paas/v4/chat/completions';
-  
+// Função para chamar a API do Open Router com streaming
+async function callOpenRouterAPI(apiConfig, messageData, systemPrompt) {
+  console.log('Chamando Open Router API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
+
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
+
   // Build conversation messages
   const messages = [];
-  
+
   // Add system prompt
   if (systemPrompt) {
     messages.push({
@@ -1119,7 +1147,7 @@ async function callZaiAPI(apiConfig, messageData, systemPrompt) {
       content: systemPrompt
     });
   }
-  
+
   // Add conversation history
   if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
     messageData.conversationHistory.forEach(msg => {
@@ -1136,13 +1164,140 @@ async function callZaiAPI(apiConfig, messageData, systemPrompt) {
       }
     });
   }
-  
+
   // Add current user message
   messages.push({
     role: 'user',
     content: messageData.text
   });
-  
+
+  const requestBody = {
+    model: apiConfig.model || 'google/gemini-2.0-flash-001',
+    messages: messages,
+    temperature: 0.7,
+    max_tokens: 4096,
+    stream: true
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiConfig.apiKey}`,
+      'HTTP-Referer': 'https://openchat.ai', // Optional
+      'X-Title': 'OpenChat', // Optional
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Erro da API Open Router: ${errorData.error?.message || response.statusText}`);
+  }
+
+  // Handle streaming response
+  return new Promise(async (resolve, reject) => {
+    let fullResponse = '';
+    let buffer = '';
+
+    try {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          if (fullResponse) {
+            resolve(fullResponse);
+          } else {
+            reject(new Error('Resposta vazia da API Open Router'));
+          }
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+
+            if (data === '[DONE]') {
+              resolve(fullResponse);
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                const content = parsed.choices[0].delta.content;
+                fullResponse += content;
+
+                if (mainWindow) {
+                  mainWindow.webContents.send('streaming-update', content);
+                }
+              }
+            } catch (e) {
+              // Ignore parsing errors for incomplete chunks
+              // console.log('Erro ao parsear chunk Open Router:', e.message);
+            }
+          }
+        }
+      }
+
+      if (mainWindow) {
+        mainWindow.webContents.send('streaming-complete');
+      }
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// Função para chamar a API do Z.AI GLM com streaming
+async function callZaiAPI(apiConfig, messageData, systemPrompt) {
+  console.log('Chamando Z.AI GLM API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
+
+  const url = 'https://api.z.ai/api/paas/v4/chat/completions';
+
+  // Build conversation messages
+  const messages = [];
+
+  // Add system prompt
+  if (systemPrompt) {
+    messages.push({
+      role: 'system',
+      content: systemPrompt
+    });
+  }
+
+  // Add conversation history
+  if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
+    messageData.conversationHistory.forEach(msg => {
+      if (msg.type === 'user') {
+        messages.push({
+          role: 'user',
+          content: msg.text
+        });
+      } else if (msg.type === 'bot') {
+        messages.push({
+          role: 'assistant',
+          content: msg.text
+        });
+      }
+    });
+  }
+
+  // Add current user message
+  messages.push({
+    role: 'user',
+    content: messageData.text
+  });
+
   const requestBody = {
     model: apiConfig.model,
     messages: messages,
@@ -1172,14 +1327,14 @@ async function callZaiAPI(apiConfig, messageData, systemPrompt) {
   return new Promise(async (resolve, reject) => {
     let fullResponse = '';
     let buffer = ''; // Buffer para acumular linhas parciais
-    
+
     try {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      
+
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) {
           if (fullResponse) {
             resolve(fullResponse);
@@ -1188,38 +1343,38 @@ async function callZaiAPI(apiConfig, messageData, systemPrompt) {
           }
           break;
         }
-        
+
         // Decodificar o chunk e adicionar ao buffer
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
-        
+
         // Processar linhas completas do buffer
         const lines = buffer.split('\n');
-        
+
         // A última linha pode estar incompleta, então guardamos no buffer
         buffer = lines.pop() || '';
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             if (data === '[DONE]') {
               resolve(fullResponse);
               return;
             }
-            
+
             try {
               const parsed = JSON.parse(data);
-              
+
               // Z.AI pode retornar reasoning_content e content separadamente
               if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
                 const delta = parsed.choices[0].delta;
-                
+
                 // Ignorar reasoning_content (pensamento interno) e só usar content (resposta final)
                 if (delta.content) {
                   const content = delta.content;
                   fullResponse += content;
-                  
+
                   // Send streaming update to renderer
                   if (mainWindow) {
                     mainWindow.webContents.send('streaming-update', content);
@@ -1233,7 +1388,7 @@ async function callZaiAPI(apiConfig, messageData, systemPrompt) {
           }
         }
       }
-      
+
       // Send completion event
       if (mainWindow) {
         mainWindow.webContents.send('streaming-complete');

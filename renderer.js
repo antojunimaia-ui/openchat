@@ -34,6 +34,11 @@ class OpenChat {
                     enabled: false,
                     apiKey: '',
                     model: 'glm-4.6'
+                },
+                openrouter: {
+                    enabled: false,
+                    apiKey: '',
+                    model: 'google/gemini-2.0-flash-001'
                 }
             },
             activeModel: 'gemini',
@@ -64,16 +69,16 @@ class OpenChat {
             this.loadChatList();
             this.loadMessages();
             this.setupAutoSave();
-            
+
             // Restore sidebar state
             this.restoreSidebarState();
-            
+
             // Initialize snow effect after everything else is loaded
             this.initSnowEffect();
-            
+
             // Initialize New Year message
             this.initNewYearMessage();
-            
+
             // Check and show Terms of Use if not accepted
             this.checkTermsOfUse();
         });
@@ -228,7 +233,7 @@ class OpenChat {
 
         // Settings modal functionality
         this.setupSettingsModal();
-        
+
         // Architect modal functionality
         this.setupArchitectModals();
 
@@ -262,20 +267,20 @@ class OpenChat {
     updateSendButton() {
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
-        
+
         if (!messageInput || !sendBtn) {
             console.log('Elements not found:', { messageInput, sendBtn });
             return;
         }
-        
+
         const hasContent = messageInput.value.trim().length > 0 || this.imagePreview;
-        
-        console.log('updateSendButton:', { 
-            hasContent, 
-            messageLength: messageInput.value.trim().length, 
-            hasImage: !!this.imagePreview 
+
+        console.log('updateSendButton:', {
+            hasContent,
+            messageLength: messageInput.value.trim().length,
+            hasImage: !!this.imagePreview
         });
-        
+
         sendBtn.disabled = !hasContent;
     }
 
@@ -297,10 +302,10 @@ class OpenChat {
         const sidebar = document.getElementById('chatgptSidebar');
         const mainContent = document.querySelector('.main-content');
         const inputContainer = document.querySelector('.chat-input-container');
-        
+
         if (sidebar && mainContent && inputContainer) {
             const isHidden = sidebar.classList.contains('hidden');
-            
+
             if (isHidden) {
                 // Show sidebar
                 sidebar.classList.remove('hidden');
@@ -312,7 +317,7 @@ class OpenChat {
                 mainContent.classList.add('sidebar-hidden');
                 inputContainer.classList.add('sidebar-hidden');
             }
-            
+
             // Save state to localStorage
             localStorage.setItem('sidebar-hidden', !isHidden);
         }
@@ -320,12 +325,12 @@ class OpenChat {
 
     restoreSidebarState() {
         const sidebarHidden = localStorage.getItem('sidebar-hidden') === 'true';
-        
+
         if (sidebarHidden) {
             const sidebar = document.getElementById('chatgptSidebar');
             const mainContent = document.querySelector('.main-content');
             const inputContainer = document.querySelector('.chat-input-container');
-            
+
             if (sidebar && mainContent && inputContainer) {
                 sidebar.classList.add('hidden');
                 mainContent.classList.add('sidebar-hidden');
@@ -342,38 +347,38 @@ class OpenChat {
         // Adicionar informações de identidade do usuário se disponíveis
         if (identity.nickname || identity.bio) {
             personalityPrompt += '\n\n=== INFORMAÇÕES SOBRE O USUÁRIO ===\n';
-            
+
             if (identity.nickname) {
                 personalityPrompt += `Nome/Apelido do usuário: ${identity.nickname}\n`;
                 personalityPrompt += `IMPORTANTE: Sempre que apropriado, chame o usuário pelo nome "${identity.nickname}" para tornar a conversa mais pessoal e natural.\n`;
             }
-            
+
             if (identity.bio) {
                 personalityPrompt += `\nSobre o usuário:\n${identity.bio}\n`;
                 personalityPrompt += `\nIMPORTANTE: Use essas informações para personalizar suas respostas de acordo com o contexto, interesses e perfil do usuário. Adapte exemplos, referências e o tom da conversa para serem mais relevantes para ele.\n`;
             }
-            
+
             personalityPrompt += '=== FIM DAS INFORMAÇÕES DO USUÁRIO ===\n\n';
         }
 
         // Tipo de personalidade com instruções mais específicas e brasileiras
         const personalityTypes = {
             balanced: 'Seja equilibrado e versátil em suas respostas, adaptando-se ao contexto da conversa.',
-            
+
             friendly: 'Seja muito amigável, caloroso e acolhedor. Use um tom positivo, encorajador e carinhoso. Trate o usuário como um amigo próximo.',
-            
+
             professional: 'Mantenha um tom profissional, objetivo e respeitoso. Use linguagem técnica quando apropriado, mas sempre clara.',
-            
+
             casual: 'Use um tom bem descontraído e informal. Fale como um brasileiro comum falaria no dia a dia. Use expressões como "cara", "mano", "véi", "irmão". Seja bem à vontade na conversa.',
-            
+
             witty: 'Seja espirituoso e use humor brasileiro. Faça piadas, trocadilhos, use ironia e sarcasmo quando apropriado. Seja engraçado mas inteligente.',
-            
+
             direct: 'Seja direto, conciso e vá direto ao ponto sem rodeios. Não enrole, seja objetivo e claro.',
-            
+
             enthusiastic: 'Demonstre muito entusiasmo, energia e empolgação! Use exclamações, seja animado e contagiante. Mostre paixão pelo que está falando.',
-            
+
             analytical: 'Seja analítico, lógico e metódico. Foque em dados, fatos e análises detalhadas. Explique o raciocínio por trás das suas respostas.',
-            
+
             spicy: 'Seja extremamente safado, porco e sem pudor nenhum Fala de sexo de forma bem explícita e suja: rola, buceta, cu, foder, meter, chupar, gozar, tomar leitinho, levar tudo, etc. Flerta de um jeito bem escrachado, provoca bastante, faz elogios super safados e deixa o usuário louco de tesão (e com um pouquinho de vergonha gostosa). Escreve como se estivesse com uma vontade louca de foder agora mesmo.'
         };
 
@@ -469,16 +474,16 @@ class OpenChat {
 
             // Add user message to interface immediately
             this.addMessage(message, 'user', this.imagePreview);
-            
+
             // Check if thinking tool is selected BEFORE clearing states
             const useThinking = this.selectedTool === 'thinkLonger';
-            
+
             // Clear states (but keep thinking tool selected if it was selected)
             if (this.selectedTool !== 'thinkLonger') {
                 this.clearSelectedTool();
             }
             this.removeImage();
-            
+
             if (useThinking) {
                 // Start thinking process
                 this.startThinkingProcess(messageData);
@@ -499,11 +504,11 @@ class OpenChat {
                 if (window.electronAPI && window.electronAPI.sendMessage) {
                     console.log('Enviando mensagem. System prompt atual:', this.settings.systemPrompt ? this.settings.systemPrompt.length : 0, 'caracteres');
                     const result = await window.electronAPI.sendMessage(messageData);
-                    
+
                     if (!isStreaming) {
                         this.hideTypingIndicator();
                     }
-                    
+
                     if (result.success) {
                         // Check if memories were saved/updated
                         let memoryAction = null;
@@ -516,7 +521,7 @@ class OpenChat {
                                 }
                             });
                         }
-                        
+
                         if (!isStreaming) {
                             // Add complete AI response for non-streaming
                             this.addMessage(result.response, 'bot', null, memoryAction);
@@ -568,7 +573,7 @@ class OpenChat {
         this.imagePreview = imageSrc;
         const previewContainer = document.getElementById('imagePreview');
         const previewImg = document.getElementById('previewImg');
-        
+
         previewImg.src = imageSrc;
         previewContainer.style.display = 'block';
         this.updateSendButton();
@@ -590,10 +595,10 @@ class OpenChat {
 
         // Hide tools button text
         toolsBtn.querySelector('.tools-text').style.display = 'none';
-        
+
         // Show selected tool
         selectedTool.style.display = 'flex';
-        
+
         // Set tool info
         const toolInfo = this.getToolInfo(toolId);
         selectedToolName.textContent = toolInfo.shortName;
@@ -607,7 +612,7 @@ class OpenChat {
 
         // Show tools button text
         toolsBtn.querySelector('.tools-text').style.display = 'inline';
-        
+
         // Hide selected tool
         selectedTool.style.display = 'none';
     }
@@ -629,7 +634,7 @@ class OpenChat {
 
     addMessage(text, type = 'user', image = null, memoryAction = null) {
         console.log('📝 addMessage called:', { type, text: text.substring(0, 50), isThinking: this.isThinking, hasThinkingWrapper: !!this.currentThinkingWrapper });
-        
+
         const message = {
             id: Date.now(),
             text,
@@ -641,7 +646,7 @@ class OpenChat {
         };
 
         this.messages.push(message);
-        
+
         // Handle rendering based on current state
         if (this.currentThinkingWrapper) {
             console.log('🧠 In thinking mode, handling message type:', type);
@@ -659,14 +664,14 @@ class OpenChat {
             // Normal mode - render all messages
             this.renderMessages();
         }
-        
+
         // Auto-save chat after adding message (but not system messages)
         if (type !== 'system') {
             // Create chat ID if this is the first user message
             if (!this.currentChatId && type === 'user') {
                 this.currentChatId = 'chat-' + Date.now();
             }
-            
+
             // Save after a short delay to batch multiple rapid messages
             // Mark that we have new content that needs timestamp update
             this.hasNewContent = true;
@@ -699,7 +704,7 @@ class OpenChat {
             const lastBotMessage = userMessageData.conversationHistory
                 .filter(msg => msg.type === 'bot')
                 .slice(-1)[0];
-            
+
             if (lastBotMessage) {
                 if (personality.type === 'casual') {
                     response = 'E aí de novo, mano! Continuando nosso papo... ';
@@ -788,7 +793,7 @@ class OpenChat {
         } else {
             messageContent = `<p>${message.text}</p>`;
         }
-        
+
         // Add memory indicator if present
         let memoryIndicator = '';
         if (message.memoryAction === 'saved') {
@@ -796,7 +801,7 @@ class OpenChat {
         } else if (message.memoryAction === 'updated') {
             memoryIndicator = '<div class="memory-indicator">Memória atualizada</div>';
         }
-        
+
         const messageElement = document.createElement('div');
         messageElement.className = `message ${message.type}`;
         messageElement.setAttribute('data-message-id', message.id); // Add message ID
@@ -815,11 +820,11 @@ class OpenChat {
     renderMessages() {
         // Control welcome message visibility
         const welcomeMessage = document.querySelector('.welcome-message');
-        
+
         if (this.messages.length === 0) {
             // Show welcome content when no messages
             if (welcomeMessage) welcomeMessage.style.display = 'block';
-            
+
             // Clear any existing messages container
             const existingContainer = document.querySelector('.messages-container');
             if (existingContainer) {
@@ -830,7 +835,7 @@ class OpenChat {
 
         // Hide welcome content when there are messages
         if (welcomeMessage) welcomeMessage.style.display = 'none';
-        
+
         let messagesContainer = document.querySelector('.messages-container');
         if (!messagesContainer) {
             messagesContainer = document.createElement('div');
@@ -844,7 +849,7 @@ class OpenChat {
 
         // Get IDs of messages already rendered (both in thinking windows and regular messages)
         const existingMessageIds = new Set();
-        
+
         // Collect IDs from regular messages already in DOM
         messagesContainer.querySelectorAll('.message:not(.thinking-message)').forEach(msgElement => {
             const msgId = msgElement.getAttribute('data-message-id');
@@ -855,10 +860,10 @@ class OpenChat {
         const messagesToRender = this.messages.filter(msg => {
             // Skip if part of thinking window
             if (msg.isPartOfThinking) return false;
-            
+
             // Skip if already rendered as regular message
             if (existingMessageIds.has(String(msg.id))) return false;
-            
+
             return true;
         });
 
@@ -879,10 +884,10 @@ class OpenChat {
                 // Plain text for user and system messages
                 messageContent = `<p>${msg.text}</p>`;
             }
-            
+
             // Add streaming attribute for bot messages that are streaming
             const streamingAttr = (msg.type === 'bot' && msg.streaming) ? ' data-streaming="true"' : '';
-            
+
             // Add memory indicator if present
             let memoryIndicator = '';
             if (msg.memoryAction === 'saved') {
@@ -890,7 +895,7 @@ class OpenChat {
             } else if (msg.memoryAction === 'updated') {
                 memoryIndicator = '<div class="memory-indicator">Memória atualizada</div>';
             }
-            
+
             return `
                 <div class="message ${msg.type}" data-message-id="${msg.id}"${streamingAttr}>
                     ${memoryIndicator}
@@ -922,18 +927,18 @@ class OpenChat {
     formatTime(date) {
         // Garantir que temos um objeto Date válido
         const dateObj = date instanceof Date ? date : new Date(date);
-        
+
         // Verificar se a data é válida
         if (isNaN(dateObj.getTime())) {
-            return new Date().toLocaleTimeString('pt-BR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+            return new Date().toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
             });
         }
-        
-        return dateObj.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+
+        return dateObj.toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit'
         });
     }
 
@@ -957,7 +962,7 @@ class OpenChat {
     showTypingIndicator() {
         // Remove existing typing indicator
         this.hideTypingIndicator();
-        
+
         let messagesContainer = document.querySelector('.messages-container');
         if (!messagesContainer) {
             messagesContainer = document.createElement('div');
@@ -996,7 +1001,7 @@ class OpenChat {
         console.log('🧠 Iniciando processo de pensamento...');
         console.log('📊 Messages container children before thinking:', document.querySelector('.messages-container')?.children.length);
         console.log('🧠 Existing thinking windows:', document.querySelectorAll('.thinking-message').length);
-        
+
         // CRITICAL: If there's an existing thinking process, just clear the references
         // DON'T remove the previous thinking window from DOM
         if (this.currentThinkingWrapper) {
@@ -1005,56 +1010,56 @@ class OpenChat {
             this.currentThinkingId = null;
             this.isThinking = false;
         }
-        
+
         // Create thinking window FIRST and wait for it to be ready
         this.createThinkingWindow();
-        
+
         console.log('📊 Messages container children after creating thinking window:', document.querySelector('.messages-container')?.children.length);
-        
+
         // Verify the window was created properly
         if (!this.currentThinkingId || !this.currentThinkingWrapper) {
             console.error('❌ Failed to create thinking window');
             return;
         }
-        
+
         console.log('✅ Thinking window created successfully with ID:', this.currentThinkingId);
-        
+
         // Wait longer to ensure DOM is fully updated
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
         // Triple-check the element exists and is in the right place
         const testElement = document.getElementById(`${this.currentThinkingId}-text`);
         const isInWrapper = this.currentThinkingWrapper.contains(testElement);
-        
+
         console.log('🔍 Element verification:');
         console.log('  - Element exists:', !!testElement);
         console.log('  - Element in wrapper:', isInWrapper);
         console.log('  - Wrapper class:', this.currentThinkingWrapper.className);
-        
+
         if (!testElement || !isInWrapper) {
             console.error('❌ Element verification failed, aborting thinking process');
             this.cancelThinking();
             return;
         }
-        
+
         // Generate thinking prompt
         const thinkingPrompt = this.generateThinkingPrompt(messageData.text);
-        
+
         // Start thinking phase
         await this.performThinking(thinkingPrompt, messageData);
     }
 
     createThinkingWindow() {
         console.log('🏗️ Creating thinking window...');
-        
+
         // Record start time for duration calculation
         this.thinkingStartTime = Date.now();
-        
+
         // Generate EXTREMELY unique ID
         const thinkingId = 'thinking-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        
+
         console.log('🆔 Generated unique ID:', thinkingId);
-        
+
         // Get messages container
         let messagesContainer = document.querySelector('.messages-container');
         if (!messagesContainer) {
@@ -1104,22 +1109,22 @@ class OpenChat {
         // Store references
         this.currentThinkingWrapper = messageWrapper;
         this.currentThinkingId = thinkingId;
-        
+
         // Force DOM update and verify
         messageWrapper.offsetHeight;
-        
+
         // Verify all elements were created correctly
         const textElement = document.getElementById(`${thinkingId}-text`);
         const statusElement = document.getElementById(`${thinkingId}-status`);
         const headerElement = document.getElementById(`${thinkingId}-header`);
-        
+
         console.log('🔍 Element verification:');
         console.log('  - Text element:', !!textElement);
         console.log('  - Status element:', !!statusElement);
         console.log('  - Header element:', !!headerElement);
         console.log('  - Text in wrapper:', messageWrapper.contains(textElement));
         console.log('  - Wrapper in DOM:', document.body.contains(messageWrapper));
-        
+
         if (!textElement || !statusElement || !messageWrapper.contains(textElement)) {
             console.error('❌ CRITICAL: Elements not properly created!');
             return false;
@@ -1129,7 +1134,7 @@ class OpenChat {
         if (headerElement) {
             const toggle = document.getElementById(`${thinkingId}-toggle`);
             const content = document.getElementById(`${thinkingId}-content`);
-            
+
             if (toggle && content) {
                 headerElement.addEventListener('click', () => {
                     const isCollapsed = content.classList.contains('collapsed');
@@ -1202,10 +1207,10 @@ IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, 
     async performThinking(thinkingPrompt, originalMessageData) {
         try {
             console.log('performThinking started, currentThinkingId:', this.currentThinkingId);
-            
+
             // CRITICAL: Disable streaming listeners during thinking to prevent interference
             this.isThinking = true;
-            
+
             // Create thinking message data with optimized settings for reasoning
             const thinkingMessageData = {
                 text: thinkingPrompt,
@@ -1218,24 +1223,24 @@ IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, 
             // Send thinking request
             if (window.electronAPI && window.electronAPI.sendMessage) {
                 const result = await window.electronAPI.sendMessage(thinkingMessageData);
-                
+
                 if (result.success) {
                     console.log('Thinking response received, about to stream to ID:', this.currentThinkingId);
-                    
+
                     // Stream the thinking process
                     await this.streamThinkingText(result.response);
-                    
+
                     // Finish thinking and start actual response
                     console.log('About to call finishThinking');
                     this.finishThinking();
                     console.log('finishThinking called');
-                    
+
                     // Re-enable streaming listeners
                     this.isThinking = false;
-                    
+
                     // Add a small delay to make the transition feel more natural
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    
+
                     // Now send the actual message with thinking context
                     await this.sendActualResponse(originalMessageData, result.response);
                 } else {
@@ -1254,15 +1259,15 @@ IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, 
 
     async streamThinkingText(thinkingText) {
         console.log('🎬 Starting thinking text stream...');
-        
+
         if (!this.currentThinkingId || !this.currentThinkingWrapper) {
             console.error('❌ No thinking context available');
             return;
         }
-        
+
         // Store a direct reference to the text element to avoid DOM queries
         const thinkingTextElement = this.currentThinkingWrapper.querySelector('.thinking-text');
-        
+
         if (!thinkingTextElement) {
             console.error('❌ Text element not found in wrapper');
             console.log('Wrapper contents:', this.currentThinkingWrapper.innerHTML);
@@ -1289,13 +1294,13 @@ IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, 
                 console.error('❌ Element disconnected from DOM at word', i);
                 break;
             }
-            
+
             currentText += (i > 0 ? ' ' : '') + words[i];
             thinkingTextElement.textContent = currentText;
-            
+
             // Add cursor
             thinkingTextElement.innerHTML = currentText + '<span class="thinking-cursor"></span>';
-            
+
             // Scroll to bottom
             const thinkingContent = this.currentThinkingWrapper.querySelector('.thinking-content');
             if (thinkingContent) {
@@ -1315,40 +1320,40 @@ IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, 
 
     finishThinking() {
         console.log('finishThinking called');
-        
+
         if (!this.currentThinkingWrapper) {
             console.error('❌ No thinking wrapper available');
             return;
         }
-        
+
         // Update status using wrapper reference instead of document query
         const thinkingStatus = this.currentThinkingWrapper.querySelector('.thinking-status');
-        
+
         if (thinkingStatus) {
             const elapsed = Math.floor((Date.now() - this.thinkingStartTime) / 1000);
             const newText = `Thought for ${elapsed}s`;
-            
+
             console.log('Updating thinking status to:', newText);
-            
+
             // Clear any existing styles that might interfere
             thinkingStatus.style.background = '';
             thinkingStatus.style.backgroundClip = '';
             thinkingStatus.style.webkitBackgroundClip = '';
             thinkingStatus.style.webkitTextFillColor = '';
             thinkingStatus.style.animation = '';
-            
+
             // Update text and add completed class
             thinkingStatus.textContent = newText;
             thinkingStatus.classList.add('completed');
-            
+
             console.log('Thinking status updated, current text:', thinkingStatus.textContent);
         } else {
             console.error('thinkingStatus element not found in wrapper');
         }
-        
+
         // Keep the thinking window visible and expanded for the user to review
         // Don't auto-collapse anymore
-        
+
         // DON'T clear the thinking references yet - we need them for the response
         // They will be cleared when a new thinking process starts or when explicitly cancelled
     }
@@ -1356,7 +1361,7 @@ IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, 
     cancelThinking(removeFromDOM = true) {
         // Re-enable streaming
         this.isThinking = false;
-        
+
         // Only remove from DOM if explicitly requested
         if (removeFromDOM) {
             const thinkingWindow = document.querySelector('.thinking-window');
@@ -1369,7 +1374,7 @@ IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, 
                 }
             }
         }
-        
+
         // Always clear references
         this.currentThinkingWrapper = null;
         this.currentThinkingId = null;
@@ -1412,11 +1417,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Send enhanced message
         if (window.electronAPI && window.electronAPI.sendMessage) {
             const result = await window.electronAPI.sendMessage(enhancedMessageData);
-            
+
             if (!isStreaming) {
                 this.hideTypingIndicator();
             }
-            
+
             if (result.success) {
                 let memoryAction = null;
                 if (result.functionCalls && result.functionCalls.length > 0) {
@@ -1428,7 +1433,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                         }
                     });
                 }
-                
+
                 if (!isStreaming) {
                     this.addResponseToThinkingMessage(result.response, memoryAction);
                 } else {
@@ -1447,10 +1452,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     addResponseToThinkingMessage(responseText, memoryAction = null) {
         if (!this.currentThinkingWrapper) return;
-        
+
         // Re-enable streaming now that thinking is complete
         this.isThinking = false;
-        
+
         // Create the bot message and add to messages array
         const botMessage = {
             id: Date.now(),
@@ -1460,14 +1465,14 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             memoryAction: memoryAction,
             isPartOfThinking: true // Mark this message as part of thinking window
         };
-        
+
         this.messages.push(botMessage);
-        
+
         // Create response content div
         const responseDiv = document.createElement('div');
         responseDiv.className = 'message-content';
         responseDiv.style.marginTop = '16px';
-        
+
         // Add memory indicator if present
         if (memoryAction) {
             const memoryIndicator = document.createElement('div');
@@ -1475,20 +1480,20 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             memoryIndicator.textContent = memoryAction === 'saved' ? 'Memória salva' : 'Memória atualizada';
             responseDiv.appendChild(memoryIndicator);
         }
-        
+
         // Format and add the response
         const formattedResponse = this.formatBotMessage(responseText);
         responseDiv.innerHTML += formattedResponse;
-        
+
         // Add to the thinking message wrapper
         this.currentThinkingWrapper.appendChild(responseDiv);
-        
+
         // Scroll to bottom
         const messagesContainer = document.querySelector('.messages-container');
         if (messagesContainer) {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-        
+
         // Clear the references - thinking is complete
         this.currentThinkingWrapper = null;
         this.currentThinkingId = null;
@@ -1497,7 +1502,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     showTypingIndicatorWithThinking() {
         if (!this.currentThinkingWrapper) return;
-        
+
         // Add typing indicator to the thinking message
         const typingIndicator = document.createElement('div');
         typingIndicator.className = 'typing-indicator';
@@ -1510,9 +1515,9 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 <div class="typing-dot"></div>
             </div>
         `;
-        
+
         this.currentThinkingWrapper.appendChild(typingIndicator);
-        
+
         // Scroll to bottom
         const messagesContainer = document.querySelector('.messages-container');
         if (messagesContainer) {
@@ -1522,15 +1527,15 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     startStreamingResponseWithThinking() {
         if (!this.currentThinkingWrapper) return;
-        
+
         // Create streaming message content in the thinking wrapper
         const responseDiv = document.createElement('div');
         responseDiv.className = 'message-content';
         responseDiv.style.marginTop = '16px';
         responseDiv.setAttribute('data-streaming', 'true');
-        
+
         this.currentThinkingWrapper.appendChild(responseDiv);
-        
+
         // Create streaming message object
         const message = {
             id: Date.now(),
@@ -1544,7 +1549,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
         this.currentStreamingMessage = message;
         this.messages.push(message); // Add to messages array
-        
+
         // Scroll to bottom
         const messagesContainer = document.querySelector('.messages-container');
         if (messagesContainer) {
@@ -1559,7 +1564,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 this.updateStreamingMessage(content);
             });
         }
-        
+
         if (window.electronAPI && window.electronAPI.onStreamingComplete) {
             window.electronAPI.onStreamingComplete((event, memoryAction) => {
                 this.finishStreamingResponse(memoryAction);
@@ -1579,7 +1584,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
         this.currentStreamingMessage = message;
         this.messages.push(message);
-        
+
         // Only render messages if we're not in a thinking process
         if (!this.currentThinkingWrapper) {
             this.renderMessages();
@@ -1592,16 +1597,16 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             console.log('🚫 Ignoring streaming update during thinking process');
             return;
         }
-        
+
         if (this.currentStreamingMessage) {
             this.currentStreamingMessage.text += content;
-            
+
             // Update the streaming element directly if it exists
             if (this.currentStreamingMessage.element) {
                 const text = this.currentStreamingMessage.text;
                 const formattedContent = this.formatBotMessageStreaming(text);
                 this.currentStreamingMessage.element.innerHTML = formattedContent;
-                
+
                 // Auto-scroll to bottom
                 const messagesContainer = document.querySelector('.messages-container');
                 if (messagesContainer) {
@@ -1630,10 +1635,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 // Apply rich formatting in real-time during streaming
                 const text = this.currentStreamingMessage.text;
                 const formattedContent = this.formatBotMessageStreaming(text);
-                
+
                 // No cursor, just the content with fade-in effect
                 messageContent.innerHTML = formattedContent;
-                
+
                 // Auto-scroll to bottom
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
@@ -1643,14 +1648,14 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     // Optimized formatting for streaming - handles partial content gracefully
     formatBotMessageStreaming(text) {
         if (!text) return '';
-        
+
         // Remove function calls completas (com tag de fechamento)
         text = text.replace(/\[FUNCTION_CALL\]\s*[\s\S]*?\s*\[\/FUNCTION_CALL\]/gi, '');
-        
+
         // Remove function calls incompletas (ainda sendo escritas durante streaming)
         // Isso esconde o conteúdo desde o momento que [FUNCTION_CALL] aparece
         text = text.replace(/\[FUNCTION_CALL\][\s\S]*$/gi, '');
-        
+
         text = text.trim();
 
         // Apply formatting but handle incomplete markdown gracefully
@@ -1660,10 +1665,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 const lang = language || 'text';
                 const codeId = 'ace-editor-' + Math.random().toString(36).substr(2, 9);
                 const cleanCode = this.escapeHtml(code.trim());
-                
+
                 // Queue Ace Editor initialization for after DOM update
                 setTimeout(() => this.initializeAceEditor(codeId, lang, code.trim()), 10);
-                
+
                 return `<div class="ace-code-block-container">
                     <div class="ace-editor-wrapper">
                         <div id="${codeId}" class="ace-editor-instance">${cleanCode}</div>
@@ -1683,7 +1688,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Handle lists (only complete lines)
         formatted = formatted.replace(/^- (.+)$/gm, '<li>$1</li>');
         formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ul>$1</ul>');
-        
+
         formatted = formatted.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
         formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ol>$1</ol>');
 
@@ -1715,13 +1720,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             const minHeight = 60;
             const maxHeight = 400;
             const calculatedHeight = Math.min(Math.max(lineCount * lineHeight + 20, minHeight), maxHeight);
-            
+
             // Ensure the element has proper dimensions before initializing
             editorElement.style.height = calculatedHeight + 'px';
             editorElement.style.width = '100%';
-            
+
             const editor = ace.edit(editorId);
-            
+
             // Configure editor
             editor.setTheme("ace/theme/github_dark");
             editor.setReadOnly(true);
@@ -1729,7 +1734,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             editor.setShowPrintMargin(false);
             editor.renderer.setShowGutter(true);
             editor.renderer.setScrollMargin(8, 8, 0, 0);
-            
+
             // Set language mode
             const modeMap = {
                 'javascript': 'ace/mode/javascript',
@@ -1747,18 +1752,18 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 'shell': 'ace/mode/sh',
                 'text': 'ace/mode/text'
             };
-            
+
             const mode = modeMap[language.toLowerCase()] || 'ace/mode/text';
             editor.session.setMode(mode);
-            
+
             // Set content
             editor.setValue(code, -1);
-            
+
             // Configure auto-resize based on content
             const actualLineCount = editor.session.getLength();
             const maxLines = Math.min(actualLineCount, 25); // Max 25 lines visible
             const minLines = Math.max(actualLineCount, 2);  // Min 2 lines
-            
+
             editor.setOptions({
                 maxLines: maxLines,
                 minLines: minLines,
@@ -1768,16 +1773,16 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 showFoldWidgets: false,
                 fadeFoldWidgets: false
             });
-            
+
             // Force resize after initialization
             setTimeout(() => {
                 editor.resize(true);
                 editor.renderer.updateFull();
             }, 50);
-            
+
             // Store reference for later use
             editorElement.aceEditor = editor;
-            
+
         } catch (error) {
             console.error('Error initializing Ace Editor:', error);
             // Fallback to simple pre/code if Ace fails
@@ -1789,13 +1794,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     finishStreamingResponse(memoryAction = null) {
         // Re-enable streaming for future messages
         this.isThinking = false;
-        
+
         if (this.currentStreamingMessage) {
             this.currentStreamingMessage.streaming = false;
             if (memoryAction) {
                 this.currentStreamingMessage.memoryAction = memoryAction;
             }
-            
+
             // If using thinking system, add memory indicator to the element
             if (this.currentStreamingMessage.element && memoryAction) {
                 const memoryIndicator = document.createElement('div');
@@ -1803,7 +1808,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 memoryIndicator.textContent = memoryAction === 'saved' ? 'Memória salva' : 'Memória atualizada';
                 this.currentStreamingMessage.element.insertBefore(memoryIndicator, this.currentStreamingMessage.element.firstChild);
             }
-            
+
             // Remove streaming attribute from element if it exists
             if (this.currentStreamingMessage.element) {
                 this.currentStreamingMessage.element.removeAttribute('data-streaming');
@@ -1812,11 +1817,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 const messagesContainer = document.querySelector('.messages-container');
                 if (messagesContainer) {
                     const streamingElements = messagesContainer.querySelectorAll('.message.bot[data-streaming="true"]');
-                    
+
                     streamingElements.forEach(streamingElement => {
                         streamingElement.removeAttribute('data-streaming');
                     });
-                    
+
                     if (memoryAction && streamingElements.length > 0) {
                         const lastElement = streamingElements[streamingElements.length - 1];
                         const memoryText = memoryAction === 'saved' ? 'Memória salva' : 'Memória atualizada';
@@ -1827,13 +1832,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                     }
                 }
             }
-            
+
             // Don't clear currentStreamingMessage here if it's part of thinking
             // It will be cleared when thinking process completes
             if (!this.currentStreamingMessage.isPartOfThinking) {
                 this.currentStreamingMessage = null;
             }
-            
+
             // Only clear thinking references if not part of thinking
             if (!this.currentStreamingMessage || !this.currentStreamingMessage.isPartOfThinking) {
                 this.currentThinkingWrapper = null;
@@ -1850,7 +1855,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 this.messages.splice(index, 1);
             }
             this.currentStreamingMessage = null;
-            
+
             // Only render messages if we're not in a thinking process
             if (!this.currentThinkingWrapper) {
                 this.renderMessages();
@@ -1861,7 +1866,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     // Rich text formatting
     formatBotMessage(text) {
         if (!text) return '';
-        
+
         // Extract and preserve function indicators
         const indicators = [];
         text = text.replace(/<div class="function-indicator (reading-document|writing-document)">[\s\S]*?<\/div>/g, (match) => {
@@ -1869,13 +1874,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             indicators.push(match);
             return placeholder;
         });
-        
+
         // Remove function calls completas (com tag de fechamento)
         text = text.replace(/\[FUNCTION_CALL\]\s*[\s\S]*?\s*\[\/FUNCTION_CALL\]/gi, '');
-        
+
         // Remove function calls incompletas (ainda sendo escritas durante streaming)
         text = text.replace(/\[FUNCTION_CALL\][\s\S]*$/gi, '');
-        
+
         text = text.trim();
 
         // Convert markdown-like formatting to HTML
@@ -1885,10 +1890,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 const lang = language || 'text';
                 const codeId = 'ace-editor-' + Math.random().toString(36).substr(2, 9);
                 const cleanCode = this.escapeHtml(code.trim());
-                
+
                 // Queue Ace Editor initialization for after DOM update
                 setTimeout(() => this.initializeAceEditor(codeId, lang, code.trim()), 10);
-                
+
                 return `<div class="ace-code-block-container">
                     <div class="ace-editor-wrapper">
                         <div id="${codeId}" class="ace-editor-instance">${cleanCode}</div>
@@ -1910,7 +1915,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Handle unordered lists
         formatted = formatted.replace(/^- (.+)$/gm, '<li>$1</li>');
         formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ul>$1</ul>');
-        
+
         // Handle ordered lists
         formatted = formatted.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
         formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ol>$1</ol>');
@@ -1927,7 +1932,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Clean up empty paragraphs
         formatted = formatted.replace(/<p><\/p>/g, '');
         formatted = formatted.replace(/<p>\s*<\/p>/g, '');
-        
+
         // Restore function indicators
         indicators.forEach((indicator, index) => {
             formatted = formatted.replace(`__INDICATOR_${index}__`, indicator);
@@ -1950,39 +1955,39 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         if (this.messages.length > 0 && this.currentChatId) {
             this.saveCurrentChat();
         }
-        
+
         // Clear current chat
         this.messages = [];
         this.currentChatId = null;
         this.hasNewContent = false; // Reset flag for new chat
-        
+
         // Set architect mode flag if specified
         if (isArchitectMode) {
             this.currentChatIsArchitect = true;
         } else {
             this.currentChatIsArchitect = false;
         }
-        
+
         this.renderMessages();
-        
+
         // Clear input states
         this.clearSelectedTool();
         this.removeImage();
-        
+
         // Clear input
         const messageInput = document.getElementById('messageInput');
         messageInput.value = '';
         messageInput.style.height = 'auto';
         this.updateSendButton();
-        
+
         // Reset input to center position
         this.resetInputToCenter();
-        
+
         // Update active chat in sidebar
         document.querySelectorAll('.chat-item').forEach(item => {
             item.classList.remove('active');
         });
-        
+
         this.showNotification(isArchitectMode ? 'Novo chat Arquiteto iniciado' : 'Novo chat iniciado');
     }
 
@@ -1995,85 +2000,85 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
             if (window.electronAPI && window.electronAPI.loadChat) {
                 const result = await window.electronAPI.loadChat(chatId);
-                
+
                 if (result.success) {
                     this.currentChatId = chatId;
                     this.messages = result.chat.messages || [];
                     this.hasNewContent = false; // Reset flag when loading existing chat
-                    
+
                     // Check if it's an architect chat
                     if (result.chat.isArchitect) {
                         this.currentChatIsArchitect = true;
                         this.architectDocument = result.chat.architectDocument || '';
-                        
+
                         // Restore architect mode UI if not already active
                         if (!this.architectMode) {
                             this.architectMode = true;
-                            
+
                             // Show architect sidebar
                             const architectSidebar = document.getElementById('architectSidebar');
                             architectSidebar.classList.add('show');
-                            
+
                             // Update document content
                             const documentContent = document.getElementById('architectDocumentContent');
                             documentContent.textContent = this.architectDocument;
-                            
+
                             // Hide main sidebar
                             const mainSidebar = document.getElementById('chatgptSidebar');
                             mainSidebar.classList.add('hidden');
-                            
+
                             // Adjust main content
                             const mainContent = document.querySelector('.main-content');
                             const inputContainer = document.querySelector('.chat-input-container');
                             mainContent.classList.add('architect-mode');
                             inputContainer.classList.add('architect-mode');
-                            
+
                             // Update placeholder
                             const messageInput = document.getElementById('messageInput');
                             messageInput.placeholder = 'Construa sua próxima grande ideia!';
-                            
+
                             // Update sidebar width
                             this.updateArchitectSidebarWidth();
                         }
                     } else {
                         this.currentChatIsArchitect = false;
-                        
+
                         // Exit architect mode if currently active
                         if (this.architectMode) {
                             this.architectMode = false;
-                            
+
                             // Hide architect sidebar
                             const architectSidebar = document.getElementById('architectSidebar');
                             architectSidebar.classList.remove('show');
-                            
+
                             // Show main sidebar
                             const mainSidebar = document.getElementById('chatgptSidebar');
                             mainSidebar.classList.remove('hidden');
-                            
+
                             // Reset main content
                             const mainContent = document.querySelector('.main-content');
                             const inputContainer = document.querySelector('.chat-input-container');
                             mainContent.classList.remove('architect-mode');
                             inputContainer.classList.remove('architect-mode');
-                            
+
                             // IMPORTANT: Reset inline styles
                             mainContent.style.marginRight = '';
                             inputContainer.style.right = '';
-                            
+
                             // Reset placeholder
                             const messageInput = document.getElementById('messageInput');
                             messageInput.placeholder = 'No que você está pensando?';
                         }
                     }
-                    
+
                     this.renderMessages();
-                    
+
                     // Update active chat in sidebar
                     document.querySelectorAll('.chat-item').forEach(item => {
                         item.classList.remove('active');
                     });
                     document.querySelector(`[data-chat-id="${chatId}"]`)?.classList.add('active');
-                    
+
                     // Don't show notification for loading existing chats to avoid noise
                     // this.showNotification(`Chat "${result.chat.title}" carregado`);
                 } else {
@@ -2098,24 +2103,24 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             // Generate title from first user message with better logic
             const firstUserMessage = this.messages.find(msg => msg.type === 'user');
             let title = 'Novo Chat';
-            
+
             if (firstUserMessage) {
                 let messageText = firstUserMessage.text.trim();
-                
+
                 // Remove common prefixes
                 messageText = messageText.replace(/^(olá|oi|hello|hi)[,\s]*/i, '');
                 messageText = messageText.replace(/^(me ajude|ajuda|help)[,\s]*/i, '');
-                
+
                 // Capitalize first letter
                 if (messageText.length > 0) {
                     messageText = messageText.charAt(0).toUpperCase() + messageText.slice(1);
                 }
-                
+
                 // Truncate and clean
-                title = messageText.length > 50 ? 
-                    messageText.substring(0, 47) + '...' : 
+                title = messageText.length > 50 ?
+                    messageText.substring(0, 47) + '...' :
                     messageText;
-                
+
                 // Fallback if title is too short or empty
                 if (title.length < 3) {
                     title = 'Conversa ' + new Date().toLocaleDateString('pt-BR');
@@ -2144,12 +2149,12 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             };
 
             const result = await window.electronAPI.saveChat(chatData);
-            
+
             if (result.success && isNewChat) {
                 // Only reload chat list if it's a new chat to avoid reordering
                 await this.loadChatList();
             }
-            
+
             // Reset the new content flag after saving
             this.hasNewContent = false;
         } catch (error) {
@@ -2161,7 +2166,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         try {
             if (window.electronAPI && window.electronAPI.getChatList) {
                 const result = await window.electronAPI.getChatList();
-                
+
                 if (result.success) {
                     this.chatList = result.chats;
                     this.renderChatList();
@@ -2285,7 +2290,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         const isActive = chat.id === this.currentChatId ? 'active' : '';
         const pinIcon = isPinned ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pin-icon"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1Z"></path></svg>' : '';
         const architectClass = isArchitect || chat.isArchitect ? 'architect-chat' : '';
-        
+
         return `
             <div class="chat-item ${isActive} ${isPinned ? 'pinned' : ''} ${architectClass}" data-chat-id="${chat.id}">
                 <div class="chat-preview">
@@ -2309,13 +2314,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         try {
             if (window.electronAPI && window.electronAPI.deleteChat) {
                 const result = await window.electronAPI.deleteChat(chatId);
-                
+
                 if (result.success) {
                     // If deleting current chat, start new one
                     if (chatId === this.currentChatId) {
                         this.startNewChat();
                     }
-                    
+
                     // Reload chat list
                     await this.loadChatList();
                     this.showNotification('Chat deletado');
@@ -2360,7 +2365,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             item.addEventListener('click', () => {
                 const section = item.dataset.section;
                 this.showSettingsSection(section);
-                
+
                 // Update active nav item
                 document.querySelectorAll('.settings-nav-item').forEach(nav => nav.classList.remove('active'));
                 item.classList.add('active');
@@ -2382,6 +2387,19 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             this.toggleApiForm('zai', e.target.checked);
             this.checkSettingsChanges();
         });
+
+        document.getElementById('openrouterEnabled').addEventListener('change', (e) => {
+            this.toggleApiForm('openrouter', e.target.checked);
+            this.checkSettingsChanges();
+        });
+
+        // Refresh Open Router models
+        const refreshOpenRouterModelsBtn = document.getElementById('refreshOpenRouterModelsBtn');
+        if (refreshOpenRouterModelsBtn) {
+            refreshOpenRouterModelsBtn.addEventListener('click', () => {
+                this.fetchOpenRouterModels();
+            });
+        }
 
         // Model selection
         document.getElementById('selectGemini').addEventListener('change', (e) => {
@@ -2405,11 +2423,19 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             }
         });
 
+        document.getElementById('selectOpenrouter').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.updateModelFeatures('openrouter');
+                this.checkSettingsChanges();
+            }
+        });
+
         // Add change listeners to all form inputs
         const formInputs = [
             'geminiApiKey', 'geminiModel',
             'mistralApiKey', 'mistralModel',
             'zaiApiKey', 'zaiModel',
+            'openrouterApiKey', 'openrouterModel',
             'personalityType', 'formalityLevel',
             'allowProfanity', 'useSlang', 'useEmojis',
             'userNickname', 'userBio'
@@ -2434,9 +2460,9 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 const targetId = btn.dataset.target;
                 const input = document.getElementById(targetId);
                 const isPassword = input.type === 'password';
-                
+
                 input.type = isPassword ? 'text' : 'password';
-                btn.innerHTML = isPassword ? 
+                btn.innerHTML = isPassword ?
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>' :
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
             });
@@ -2453,6 +2479,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
         document.getElementById('testZaiBtn').addEventListener('click', () => {
             this.testApiConnection('zai');
+        });
+
+        document.getElementById('testOpenrouterBtn').addEventListener('click', () => {
+            this.testApiConnection('openrouter');
         });
 
         // Identity bio character counter
@@ -2480,13 +2510,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         document.querySelectorAll('.settings-section').forEach(section => {
             section.classList.remove('active');
         });
-        
+
         // Show selected section
         const targetSection = document.getElementById(`section-${sectionId}`);
         if (targetSection) {
             targetSection.classList.add('active');
         }
-        
+
         // Load memories if memories section is selected
         if (sectionId === 'memories') {
             this.loadMemoriesSection();
@@ -2497,18 +2527,18 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         const settingsModalOverlay = document.getElementById('settingsModalOverlay');
         settingsModalOverlay.classList.add('show');
         document.body.style.overflow = 'hidden';
-        
+
         // Show first section by default
         this.showSettingsSection('apis');
-        
+
         // Load current settings into form
         this.populateSettingsForm();
-        
+
         // Store original settings for change detection
         this.originalSettings = JSON.stringify(this.getCurrentFormSettings());
-        
+
         console.log('Original settings stored:', this.originalSettings);
-        
+
         // Hide floating buttons initially
         this.hideFloatingButtons();
     }
@@ -2525,16 +2555,16 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             console.log('No original settings stored');
             return;
         }
-        
+
         const currentSettings = JSON.stringify(this.getCurrentFormSettings());
         const hasChanges = currentSettings !== this.originalSettings;
-        
+
         console.log('Checking settings changes:', {
             hasChanges,
             original: this.originalSettings.substring(0, 100),
             current: currentSettings.substring(0, 100)
         });
-        
+
         if (hasChanges) {
             this.showFloatingButtons();
         } else {
@@ -2559,6 +2589,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                     enabled: document.getElementById('zaiEnabled')?.checked || false,
                     apiKey: document.getElementById('zaiApiKey')?.value || '',
                     model: document.getElementById('zaiModel')?.value || ''
+                },
+                openrouter: {
+                    enabled: document.getElementById('openrouterEnabled')?.checked || false,
+                    apiKey: document.getElementById('openrouterApiKey')?.value || '',
+                    model: document.getElementById('openrouterModel')?.value || ''
                 }
             },
             activeModel: document.querySelector('input[name="activeModel"]:checked')?.value || 'gemini',
@@ -2610,7 +2645,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 model: 'glm-4.6'
             };
         }
-        
+
         // Populate API settings
         document.getElementById('geminiEnabled').checked = this.settings.apis.gemini.enabled;
         document.getElementById('geminiApiKey').value = this.settings.apis.gemini.apiKey;
@@ -2627,10 +2662,29 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         document.getElementById('zaiModel').value = this.settings.apis.zai.model;
         this.toggleApiForm('zai', this.settings.apis.zai.enabled);
 
+        // Populate Open Router settings
+        if (!this.settings.apis.openrouter) {
+            this.settings.apis.openrouter = {
+                enabled: false,
+                apiKey: '',
+                model: 'google/gemini-2.0-flash-001'
+            };
+        }
+
+        document.getElementById('openrouterEnabled').checked = this.settings.apis.openrouter.enabled;
+        document.getElementById('openrouterApiKey').value = this.settings.apis.openrouter.apiKey;
+        // We don't populate model until it's loaded, but we set the value
+        const openrouterModelSelect = document.getElementById('openrouterModel');
+        if (openrouterModelSelect) {
+            openrouterModelSelect.value = this.settings.apis.openrouter.model;
+        }
+        this.toggleApiForm('openrouter', this.settings.apis.openrouter.enabled);
+
         // Populate active model
         document.getElementById('selectGemini').checked = this.settings.activeModel === 'gemini';
         document.getElementById('selectMistral').checked = this.settings.activeModel === 'mistral';
         document.getElementById('selectZai').checked = this.settings.activeModel === 'zai';
+        document.getElementById('selectOpenrouter').checked = this.settings.activeModel === 'openrouter';
 
         // Populate personality settings
         document.getElementById('personalityType').value = this.settings.personality.type;
@@ -2644,7 +2698,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         if (this.settings.identity) {
             const nicknameInput = document.getElementById('userNickname');
             const bioInput = document.getElementById('userBio');
-            
+
             if (nicknameInput) nicknameInput.value = this.settings.identity.nickname || '';
             if (bioInput) {
                 bioInput.value = this.settings.identity.bio || '';
@@ -2656,9 +2710,15 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         this.updateApiStatus('gemini');
         this.updateApiStatus('mistral');
         this.updateApiStatus('zai');
-        
+        this.updateApiStatus('openrouter');
+
         // Update model features for the selected model
         this.updateModelFeatures(this.settings.activeModel);
+
+        // Fetch Open Router models if configured
+        if (this.settings.apis.openrouter.enabled && this.settings.apis.openrouter.apiKey) {
+            this.fetchOpenRouterModels();
+        }
     }
 
     toggleApiForm(provider, enabled) {
@@ -2714,11 +2774,17 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 'Suporte a contexto longo (128k tokens)',
                 'Modo de pensamento profundo (thinking mode)',
                 'Arquitetura MoE (Mixture of Experts)'
+            ],
+            openrouter: [
+                'Acesso a centenas de modelos',
+                'API unificada para múltiplos provedores',
+                'Ótimo custo-benefício',
+                'Claude 3, GPT-4, Llama 3 e muitos outros'
             ]
         };
 
         const modelFeatures = features[provider] || [];
-        
+
         featuresContainer.innerHTML = modelFeatures.map(feature => `
             <div class="feature-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2732,11 +2798,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     updateBioCharCount() {
         const bioInput = document.getElementById('userBio');
         const charCount = document.getElementById('bioCharCount');
-        
+
         if (bioInput && charCount) {
             const currentLength = bioInput.value.length;
             charCount.textContent = currentLength;
-            
+
             // Change color if approaching limit
             if (currentLength > 900) {
                 charCount.style.color = '#ff6b6b';
@@ -2745,6 +2811,72 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             } else {
                 charCount.style.color = '#999999';
             }
+        }
+    }
+
+    async fetchOpenRouterModels() {
+        const apiKeyInput = document.getElementById('openrouterApiKey');
+        const refreshBtn = document.getElementById('refreshOpenRouterModelsBtn');
+        const apiKey = apiKeyInput ? apiKeyInput.value : this.settings.apis.openrouter.apiKey;
+
+        if (!apiKey) {
+            this.showNotification('Por favor, insira a chave da API do Open Router primeiro');
+            return;
+        }
+
+        if (refreshBtn) refreshBtn.classList.add('loading');
+
+        try {
+            if (window.electronAPI && window.electronAPI.fetchOpenRouterModels) {
+                const result = await window.electronAPI.fetchOpenRouterModels(apiKey);
+                if (result.success) {
+                    this.populateOpenRouterModels(result.models);
+                } else {
+                    this.showNotification(`Erro ao carregar modelos: ${result.error}`);
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao buscar modelos do Open Router:', error);
+            this.showNotification('Erro ao buscar modelos do Open Router');
+        } finally {
+            if (refreshBtn) refreshBtn.classList.remove('loading');
+        }
+    }
+
+    populateOpenRouterModels(models) {
+        const select = document.getElementById('openrouterModel');
+        if (!select) return;
+
+        const currentValue = select.value || this.settings.apis.openrouter.model;
+        select.innerHTML = '';
+
+        // Add a default option if no models
+        if (!models || models.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Nenhum modelo encontrado';
+            select.appendChild(option);
+            return;
+        }
+
+        // Sort models by name
+        models.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            // Show price if available
+            const price = model.pricing ? ` ($${(parseFloat(model.pricing.prompt) * 1000000).toFixed(2)}/M tokens)` : '';
+            option.textContent = (model.name || model.id) + price;
+            select.appendChild(option);
+        });
+
+        // Restore current value if it exists in the new list
+        if (currentValue && models.some(m => m.id === currentValue)) {
+            select.value = currentValue;
+        } else if (models.length > 0) {
+            // Default to first model if current not found
+            // select.selectedIndex = 0;
         }
     }
 
@@ -2765,15 +2897,15 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         try {
             // Simulate API test (in real app, make actual API call)
             await new Promise(resolve => setTimeout(resolve, 2000));
-            
+
             // Simulate success (you would implement real API testing here)
             const success = Math.random() > 0.3; // 70% success rate for demo
-            
+
             if (success) {
                 testBtn.classList.remove('testing');
                 testBtn.classList.add('success');
                 testBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"></polyline><path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11"></path></svg>Conexão OK';
-                
+
                 setTimeout(() => {
                     testBtn.classList.remove('success');
                     testBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"></polyline><path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11"></path></svg>Testar Conexão';
@@ -2785,7 +2917,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             testBtn.classList.remove('testing');
             testBtn.classList.add('error');
             testBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>Erro na conexão';
-            
+
             setTimeout(() => {
                 testBtn.classList.remove('error');
                 testBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"></polyline><path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11"></path></svg>Testar Conexão';
@@ -2811,6 +2943,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                     enabled: document.getElementById('zaiEnabled').checked,
                     apiKey: document.getElementById('zaiApiKey').value,
                     model: document.getElementById('zaiModel').value
+                },
+                openrouter: {
+                    enabled: document.getElementById('openrouterEnabled').checked,
+                    apiKey: document.getElementById('openrouterApiKey').value,
+                    model: document.getElementById('openrouterModel').value
                 }
             },
             activeModel: document.querySelector('input[name="activeModel"]:checked')?.value || 'gemini',
@@ -2831,10 +2968,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
         // Save to settings
         this.settings = newSettings;
-        
+
         // Save to localStorage
         localStorage.setItem('openchat-settings', JSON.stringify(this.settings));
-        
+
         // Save via IPC if available
         if (window.electronAPI && window.electronAPI.saveSettings) {
             try {
@@ -2843,17 +2980,17 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 console.error('Erro ao salvar configurações via IPC:', error);
             }
         }
-        
+
         // Update status indicators
         this.updateApiStatus('gemini');
         this.updateApiStatus('mistral');
         this.updateApiStatus('zai');
-        this.updateApiStatus('mistral');
-        
+        this.updateApiStatus('openrouter');
+
         // Hide floating buttons and update original settings
         this.hideFloatingButtons();
         this.originalSettings = JSON.stringify(this.getCurrentFormSettings());
-        
+
         this.showNotification('Configurações salvas com sucesso!');
     }
 
@@ -2880,6 +3017,9 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 } else if (!parsedSettings.apis.zai) {
                     parsedSettings.apis.zai = this.settings.apis.zai;
                 }
+                if (parsedSettings.apis && !parsedSettings.apis.openrouter) {
+                    parsedSettings.apis.openrouter = this.settings.apis.openrouter;
+                }
                 this.settings = { ...this.settings, ...parsedSettings };
             }
         } catch (error) {
@@ -2890,23 +3030,23 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     // Snow Effect - Only during Christmas season (December only)
     initSnowEffect() {
         console.log('initSnowEffect: Função chamada');
-        
+
         // Check if it's Christmas season (December only)
         const now = new Date();
         const month = now.getMonth(); // 0 = January, 11 = December
         const day = now.getDate();
-        
+
         console.log(`Verificando época natalina: Mês=${month} (${month === 11 ? 'Dezembro' : 'Outro mês'}), Dia=${day}`);
-        
+
         const isChristmasSeason = (month === 11); // Only December
-        
+
         console.log(`É época natalina? ${isChristmasSeason}`);
-        
+
         const snowContainer = document.getElementById('snowContainer');
-        
+
         if (!isChristmasSeason) {
             console.log('Fora da época natalina - neve desabilitada');
-            
+
             // Hide the snow container completely
             if (snowContainer) {
                 snowContainer.style.display = 'none';
@@ -2914,27 +3054,27 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             }
             return; // Don't show snow outside Christmas season
         }
-        
+
         console.log('Época natalina detectada - ativando neve');
-        
+
         // Show the snow container
         if (snowContainer) {
             snowContainer.style.display = 'block';
         }
-        
+
         this.createSnowflakes();
-        
+
         // Create new snowflakes less frequently
         this.snowInterval = setInterval(() => {
             this.createSnowflake();
         }, 1200);
-        
+
         // Check every hour if we should stop the snow (in case date changes)
         this.snowCheckInterval = setInterval(() => {
             const currentDate = new Date();
             const currentMonth = currentDate.getMonth();
             const stillChristmas = (currentMonth === 11); // Only December
-            
+
             if (!stillChristmas) {
                 console.log('Época natalina terminou - desabilitando neve');
                 this.stopSnowEffect();
@@ -2944,7 +3084,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     stopSnowEffect() {
         console.log('stopSnowEffect: Parando efeito de neve');
-        
+
         if (this.snowInterval) {
             clearInterval(this.snowInterval);
             this.snowInterval = null;
@@ -2953,7 +3093,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             clearInterval(this.snowCheckInterval);
             this.snowCheckInterval = null;
         }
-        
+
         // Hide and clear snow container
         const snowContainer = document.getElementById('snowContainer');
         if (snowContainer) {
@@ -2979,7 +3119,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         const now = new Date();
         const month = now.getMonth();
         const isChristmasSeason = (month === 11); // Only December
-        
+
         if (!isChristmasSeason) {
             console.log('createSnowflakes: Não é época natalina, cancelando criação inicial');
             return;
@@ -3002,47 +3142,47 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         const now = new Date();
         const month = now.getMonth();
         const isChristmasSeason = (month === 11); // Only December
-        
+
         if (!isChristmasSeason) {
             return; // Stop creating snowflakes if no longer Christmas season
         }
 
         const snowflake = document.createElement('div');
         snowflake.className = 'snowflake';
-        
+
         // Much smaller particles between 1px and 3px
         const size = Math.random() * 2 + 1;
         snowflake.style.width = size + 'px';
         snowflake.style.height = size + 'px';
-        
+
         // Random horizontal position
         const startX = Math.random() * 100;
         snowflake.style.left = startX + '%';
-        
+
         // Simple animation - just fall down
         const fallDuration = Math.random() * 5 + 10; // 10-15 seconds
         snowflake.style.animation = `fallWithWind ${fallDuration}s linear infinite, pulse 2s ease-in-out infinite`;
-        
+
         container.appendChild(snowflake);
     }
 
     // New Year Message - Only on January 1st (simple text replacement)
     initNewYearMessage() {
         console.log('initNewYearMessage: Função chamada');
-        
+
         const now = new Date();
         const month = now.getMonth(); // 0 = January
         const day = now.getDate();
         const year = now.getFullYear();
-        
+
         console.log(`Verificando Ano Novo: Mês=${month} (${month === 0 ? 'Janeiro' : 'Outro mês'}), Dia=${day}, Ano=${year}`);
-        
+
         const isNewYearsDay = (month === 0 && day === 1); // January 1st
-        
+
         console.log(`É dia de Ano Novo? ${isNewYearsDay}`);
-        
+
         const welcomeText = document.getElementById('welcomeText');
-        
+
         if (isNewYearsDay && welcomeText) {
             console.log('Dia de Ano Novo detectado - alterando texto');
             welcomeText.textContent = `OpenChat te deseja um Feliz ${year}! 🎉`;
@@ -3050,7 +3190,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             console.log('Não é dia de Ano Novo - texto padrão');
             welcomeText.textContent = 'No que você está pensando hoje?';
         }
-        
+
         // Check every hour if we should change the text (in case date changes)
         setInterval(() => {
             const currentDate = new Date();
@@ -3058,7 +3198,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             const currentDay = currentDate.getDate();
             const currentYear = currentDate.getFullYear();
             const stillNewYear = (currentMonth === 0 && currentDay === 1);
-            
+
             if (welcomeText) {
                 if (stillNewYear) {
                     welcomeText.textContent = `OpenChat te deseja um Feliz ${currentYear}! 🎉`;
@@ -3116,7 +3256,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
         const isMaximized = await window.electronAPI.windowIsMaximized();
         const svg = maximizeBtn.querySelector('svg');
-        
+
         if (isMaximized) {
             svg.innerHTML = '<rect x="3" y="3" width="8" height="8" stroke="currentColor" stroke-width="1.5" fill="none"/><rect x="5" y="1" width="8" height="8" stroke="currentColor" stroke-width="1.5" fill="none"/>';
         } else {
@@ -3128,7 +3268,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     checkTermsOfUse() {
         // TEMPORÁRIO: Sempre mostrar o modal para testes
         this.showTermsModal();
-        
+
         /* const termsAccepted = localStorage.getItem('openchat-terms-accepted');
         
         if (!termsAccepted) {
@@ -3230,7 +3370,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Position menu relative to the button, not the chat item
         const buttonRect = event.target.getBoundingClientRect();
         const chatHistoryArea = document.querySelector('.chat-history-area');
-        
+
         menu.style.position = 'fixed';
         menu.style.top = `${buttonRect.bottom + 5}px`;
         menu.style.right = `${window.innerWidth - buttonRect.right}px`;
@@ -3254,7 +3394,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     async renameChatPrompt(chatId) {
         this.hideChatOptions();
-        
+
         const chat = this.chatList.find(c => c.id === chatId);
         if (!chat) return;
 
@@ -3302,7 +3442,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     deleteChatConfirm(chatId) {
         this.hideChatOptions();
-        
+
         const chat = this.chatList.find(c => c.id === chatId);
         if (!chat) return;
 
@@ -3313,9 +3453,9 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     togglePinChat(chatId) {
         this.hideChatOptions();
-        
+
         const pinnedIndex = this.settings.pinnedChats.indexOf(chatId);
-        
+
         if (pinnedIndex === -1) {
             // Fixar chat
             this.settings.pinnedChats.push(chatId);
@@ -3325,10 +3465,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             this.settings.pinnedChats.splice(pinnedIndex, 1);
             this.showNotification('Chat desfixado');
         }
-        
+
         // Salvar configurações
         localStorage.setItem('openchat-settings', JSON.stringify(this.settings));
-        
+
         // Recarregar lista de chats para mostrar nova ordem
         this.loadChatList();
     }
@@ -3354,7 +3494,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     async loadMemoriesSection() {
         try {
             const result = await window.electronAPI.getMemories();
-            
+
             if (result.success) {
                 this.renderMemories(result.memories);
             } else {
@@ -3388,20 +3528,20 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             const importanceOrder = { high: 3, medium: 2, low: 1 };
             const importanceA = importanceOrder[a.importance] || 0;
             const importanceB = importanceOrder[b.importance] || 0;
-            
+
             if (importanceA !== importanceB) {
                 return importanceB - importanceA;
             }
-            
+
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
         memoriesList.innerHTML = sortedMemories.map(memory => {
             const date = new Date(memory.createdAt);
-            const formattedDate = date.toLocaleDateString('pt-BR', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric' 
+            const formattedDate = date.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
             });
 
             const categoryIcons = {
@@ -3462,7 +3602,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
         try {
             const result = await window.electronAPI.deleteMemory(memoryId);
-            
+
             if (result.success) {
                 this.showNotification('Memória excluída com sucesso');
                 this.loadMemoriesSection();
@@ -3592,45 +3732,45 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
     startArchitectMode(initialDocument) {
         console.log('Starting Architect Mode with document:', initialDocument.substring(0, 100));
-        
+
         // Close PRD modal
         this.closeArchitectPrdModal();
-        
+
         // Set architect mode
         this.architectMode = true;
         this.architectDocument = initialDocument;
-        
+
         // Start new chat for architect mode
         this.startNewChat(true); // Pass true to indicate architect mode
-        
+
         // Show architect sidebar
         const architectSidebar = document.getElementById('architectSidebar');
         architectSidebar.classList.add('show');
-        
+
         // Update document content
         const documentContent = document.getElementById('architectDocumentContent');
         documentContent.textContent = initialDocument;
-        
+
         // Initialize stats
         this.updateArchitectStats();
-        
+
         // Hide main sidebar
         const mainSidebar = document.getElementById('chatgptSidebar');
         mainSidebar.classList.add('hidden');
-        
+
         // Adjust main content
         const mainContent = document.querySelector('.main-content');
         const inputContainer = document.querySelector('.chat-input-container');
         mainContent.classList.add('architect-mode');
         inputContainer.classList.add('architect-mode');
-        
+
         // Update placeholder
         const messageInput = document.getElementById('messageInput');
         messageInput.placeholder = 'Construa sua próxima grande ideia!';
-        
+
         // Update sidebar width
         this.updateArchitectSidebarWidth();
-        
+
         this.showNotification('Modo Arquiteto ativado');
     }
 
@@ -3638,34 +3778,34 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         if (!confirm('Deseja sair do Modo Arquiteto? O documento será salvo no chat.')) {
             return;
         }
-        
+
         console.log('Exiting Architect Mode');
-        
+
         // Reset architect mode
         this.architectMode = false;
-        
+
         // Hide architect sidebar
         const architectSidebar = document.getElementById('architectSidebar');
         architectSidebar.classList.remove('show');
-        
+
         // Show main sidebar
         const mainSidebar = document.getElementById('chatgptSidebar');
         mainSidebar.classList.remove('hidden');
-        
+
         // Reset main content
         const mainContent = document.querySelector('.main-content');
         const inputContainer = document.querySelector('.chat-input-container');
         mainContent.classList.remove('architect-mode');
         inputContainer.classList.remove('architect-mode');
-        
+
         // IMPORTANT: Reset inline styles that were set by updateArchitectSidebarWidth
         mainContent.style.marginRight = '';
         inputContainer.style.right = '';
-        
+
         // Reset placeholder
         const messageInput = document.getElementById('messageInput');
         messageInput.placeholder = 'No que você está pensando?';
-        
+
         this.showNotification('Modo Arquiteto desativado');
     }
 
@@ -3673,9 +3813,9 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         const architectSidebar = document.getElementById('architectSidebar');
         const mainContent = document.querySelector('.main-content');
         const inputContainer = document.querySelector('.chat-input-container');
-        
+
         architectSidebar.style.width = `${this.architectSidebarWidth}px`;
-        
+
         if (this.architectMode) {
             // Sidebar is on the right, so adjust margin-right
             mainContent.style.marginRight = `${this.architectSidebarWidth}px`;
@@ -3688,10 +3828,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Get the most up-to-date content from the DOM
         const documentContent = document.getElementById('architectDocumentContent');
         const currentContent = documentContent ? documentContent.textContent : this.architectDocument;
-        
+
         // Update internal state
         this.architectDocument = currentContent;
-        
+
         return {
             success: true,
             document: currentContent || ''
@@ -3702,7 +3842,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Function to be called by AI via Function Calling
         this.architectDocument = newContent;
         const documentContent = document.getElementById('architectDocumentContent');
-        
+
         if (documentContent) {
             documentContent.textContent = newContent;
             this.updateArchitectStats();
@@ -3710,7 +3850,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         } else {
             console.warn('⚠️ Elemento architectDocumentContent não encontrado');
         }
-        
+
         return {
             success: true,
             message: 'Documento atualizado com sucesso'
@@ -3721,10 +3861,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         const text = this.architectDocument || '';
         const charCount = text.length;
         const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
-        
+
         const charCountEl = document.getElementById('architectCharCount');
         const wordCountEl = document.getElementById('architectWordCount');
-        
+
         if (charCountEl) {
             charCountEl.textContent = `${charCount.toLocaleString('pt-BR')} caracteres`;
         }
@@ -3738,7 +3878,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             this.showNotification('Documento vazio');
             return;
         }
-        
+
         navigator.clipboard.writeText(this.architectDocument).then(() => {
             this.showNotification('Documento copiado!');
         }).catch(err => {
@@ -3753,7 +3893,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
         const lineCount = text.split('\n').length;
         const charNoSpaces = text.replace(/\s/g, '').length;
-        
+
         const stats = `
 📊 Estatísticas do Documento
 
@@ -3762,14 +3902,14 @@ Caracteres (sem espaços): ${charNoSpaces.toLocaleString('pt-BR')}
 Palavras: ${wordCount.toLocaleString('pt-BR')}
 Linhas: ${lineCount.toLocaleString('pt-BR')}
         `.trim();
-        
+
         alert(stats);
     }
 
 }
 
 // Global function to open external links
-window.openExternalLink = async function(url) {
+window.openExternalLink = async function (url) {
     try {
         if (window.electronAPI && window.electronAPI.openExternal) {
             // Try Electron API first
@@ -3779,7 +3919,7 @@ window.openExternalLink = async function(url) {
                 return;
             }
         }
-        
+
         // Fallback to window.open for web browsers or if Electron fails
         window.open(url, '_blank', 'noopener,noreferrer');
         console.log('Link opened via window.open fallback');

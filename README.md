@@ -30,7 +30,7 @@ npm run dev
 
 ## Configuração
 
-O OpenChat permite que você utilize diferentes modelos de IA (Gemini, Mistral e Z.AI). Para começar, você precisa configurar as chaves de API nas configurações do aplicativo.
+O OpenChat permite que você utilize diferentes modelos de IA (Gemini, Mistral, Z.AI e OpenRouter). Para começar, você precisa configurar as chaves de API nas configurações do aplicativo.
 
 ### 1. Acessando as Configurações
 
@@ -63,6 +63,14 @@ No painel de configurações, na aba **APIs**, você pode configurar as seguinte
 3. Vá para **"API Keys"** no painel de controle.
 4. Clique em **"Create API Key"**.
 5. Copie a chave e cole no campo correspondente no OpenChat.
+
+#### **Open Router**
+
+1. Acesse o [Open Router Keys](https://openrouter.ai/keys).
+2. Crie uma conta ou faça login.
+3. Clique em **"Create Key"**.
+4. Copie a chave gerada e cole no campo "Chave da API" do Open Router no OpenChat.
+5. Após configurar a chave, clique no ícone de **Atualizar (🔄)** ao lado do seletor de modelos para carregar a lista completa de centenas de modelos disponíveis (Claude, GPT-4, Llama, etc.).
 
 ### 3. Selecionando o Modelo Ativo
 
