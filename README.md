@@ -80,6 +80,7 @@ No painel de configurações, na aba **APIs**, você pode configurar as seguinte
 4. Copie a chave em **"API Key"**.
 5. No OpenChat, vá para Configurações > APIs > Configuração de Voz.
 6. Selecione "ElevenLabs", cole sua chave e clique em **Atualizar (🔄)** para carregar suas vozes disponíveis.
+
 **Nota**: é necessário desativar a opção "Restringir Chave" na config de API no ElevenLabs para que as vozes sejam carregadas corretamente.
 
 ### 3. Selecionando o Modelo Ativo
