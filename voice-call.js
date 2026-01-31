@@ -11,6 +11,9 @@ class VoiceCallManager {
         this.callStartTime = null;
         this.callDurationInterval = null;
 
+        // Three.js Context
+        this.threeCtx = null;
+
         // Speech Recognition (User voice input)
         this.recognition = null;
         this.initSpeechRecognition();
@@ -165,6 +168,9 @@ class VoiceCallManager {
             this.startVoiceRecognition();
         }
 
+        // Initialize Three.js visualization
+        this.initThreeJS();
+
         // Greet user
         this.speakAI('Olá! Como posso ajudar você hoje?');
 
@@ -178,6 +184,9 @@ class VoiceCallManager {
 
         // Stop voice recognition
         this.stopVoiceRecognition();
+
+        // Stop Three.js visualization
+        this.stopThreeJS();
 
         // Stop speech
         this.stopAudio();
@@ -510,6 +519,177 @@ class VoiceCallManager {
 
         const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         this.voiceDuration.textContent = formattedTime;
+    }
+
+    initThreeJS() {
+        // Wait for Three.js to be loaded
+        if (!window.THREE) {
+            console.warn('Three.js not loaded, skipping visualization');
+            return;
+        }
+
+        const container = document.querySelector('.orb-core');
+        if (!container) return;
+
+        // Clean up any existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+
+        const h = container.clientHeight;
+        const w = container.clientWidth;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(w, h);
+        container.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const clock = new THREE.Clock();
+
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            precision mediump float;
+            uniform vec2 iResolution;
+            uniform float iTime;
+            varying vec2 vUv;
+
+            #define t iTime
+            
+            mat2 m(float a){ float c=cos(a), s=sin(a); return mat2(c,-s,s,c); }
+
+            // Mapeamento mais intenso e caótico
+            float map(vec3 p){
+                p.xz *= m(t * 0.4);
+                p.xy *= m(t * 0.3);
+                // Multiplicador de 3.5 para aumentar a densidade dos detalhes
+                vec3 q = p * 3.5 + t;
+                return length(p + vec3(sin(t * 0.7))) * log(length(p) + 1.2)
+                       + sin(q.x + sin(q.z + sin(q.y))) * 0.8 - 1.0;
+            }
+
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                uv.x *= iResolution.x / iResolution.y;
+
+                vec3 col = vec3(0.0);
+                float d = 1.5;
+
+                // Loop de Ray-marching com mais brilho
+                for (int i = 0; i <= 8; i++) {
+                    vec3 p = vec3(0, 0, 3.5) + normalize(vec3(uv, -1.2)) * d;
+                    float rz = map(p);
+                    // Aumentamos o contraste do fator 'f'
+                    float f = clamp((rz - map(p + 0.05)) * 0.8, 0.0, 1.0);
+
+                    // Branco puro mais forte (multiplicador 1.5)
+                    vec3 base = vec3(0.02) + vec3(1.5, 1.5, 1.5) * f;
+                    
+                    col = col * base + smoothstep(2.5, 0.0, rz) * 0.9 * base;
+                    d += min(rz, 0.5);
+                }
+
+                // Máscara de círculo
+                float dist = length(uv);
+                float circleMask = smoothstep(1.0, 0.97, dist);
+                
+                // Vinheta para focar no centro
+                float vignette = smoothstep(1.1, 0.1, dist);
+
+                // Elevando col à potência para aumentar o contraste (efeito líquido denso)
+                col = pow(col, vec3(1.2));
+
+                gl_FragColor = vec4(col * vignette, circleMask);
+            }
+        `;
+
+        const uniforms = {
+            iTime: { value: 0 },
+            iResolution: { value: new THREE.Vector2(w, h) }
+        };
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
+            uniforms,
+            transparent: true
+        });
+
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+        scene.add(mesh);
+
+        const onResize = () => {
+            if (!container) return;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            renderer.setSize(w, h);
+            uniforms.iResolution.value.set(w, h);
+        };
+
+        window.addEventListener('resize', onResize);
+
+        const animate = () => {
+            if (!this.threeCtx) return;
+
+            uniforms.iTime.value = clock.getElapsedTime();
+            renderer.render(scene, camera);
+
+            this.threeCtx.animationId = requestAnimationFrame(animate);
+        };
+
+        this.threeCtx = {
+            renderer,
+            scene,
+            camera,
+            clock,
+            mesh,
+            material,
+            uniforms,
+            animationId: null,
+            resizeHandler: onResize,
+            container: container
+        };
+
+        animate();
+    }
+
+    stopThreeJS() {
+        if (this.threeCtx) {
+            // Cancel animation loop
+            if (this.threeCtx.animationId) {
+                cancelAnimationFrame(this.threeCtx.animationId);
+            }
+
+            // Remove event listener
+            if (this.threeCtx.resizeHandler) {
+                window.removeEventListener('resize', this.threeCtx.resizeHandler);
+            }
+
+            // Dispose Three.js resources
+            if (this.threeCtx.material) {
+                this.threeCtx.material.dispose();
+            }
+            if (this.threeCtx.mesh && this.threeCtx.mesh.geometry) {
+                this.threeCtx.mesh.geometry.dispose();
+            }
+            if (this.threeCtx.renderer) {
+                this.threeCtx.renderer.dispose();
+                // Remove canvas from DOM
+                if (this.threeCtx.renderer.domElement && this.threeCtx.renderer.domElement.parentNode) {
+                    this.threeCtx.renderer.domElement.parentNode.removeChild(this.threeCtx.renderer.domElement);
+                }
+            }
+
+            this.threeCtx = null;
+        }
     }
 }
 

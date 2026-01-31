@@ -2461,6 +2461,15 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             radio.addEventListener('change', () => this.checkSettingsChanges());
         });
 
+        // Theme radio buttons
+        document.querySelectorAll('input[name="appTheme"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.checkSettingsChanges();
+                // Preview theme immediately
+                this.applyTheme(e.target.value);
+            });
+        });
+
         // Password toggle buttons
         document.querySelectorAll('.toggle-password-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -2625,7 +2634,8 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                     apiKey: document.getElementById('elevenLabsApiKey')?.value || '',
                     voiceId: document.getElementById('elevenLabsVoiceId')?.value || ''
                 }
-            }
+            },
+            theme: document.querySelector('input[name="appTheme"]:checked')?.value || 'default'
         };
     }
 
@@ -2756,6 +2766,12 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Fetch Open Router models if configured
         if (this.settings.apis.openrouter.enabled && this.settings.apis.openrouter.apiKey) {
             this.fetchOpenRouterModels();
+        }
+
+        // Populate theme
+        if (this.settings.theme) {
+            const themeRadio = document.querySelector(`input[name="appTheme"][value="${this.settings.theme}"]`);
+            if (themeRadio) themeRadio.checked = true;
         }
     }
 
@@ -3142,7 +3158,8 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                     apiKey: document.getElementById('elevenLabsApiKey')?.value || '',
                     voiceId: document.getElementById('elevenLabsVoiceId')?.value || ''
                 }
-            }
+            },
+            theme: document.querySelector('input[name="appTheme"]:checked')?.value || 'default'
         };
 
         // Save to settings
@@ -3171,6 +3188,9 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         this.originalSettings = JSON.stringify(this.getCurrentFormSettings());
 
         this.showNotification('Configurações salvas com sucesso!');
+
+        // Apply the saved theme to ensure it persists visually
+        this.applyTheme(this.settings.theme);
     }
 
     loadSettings() {
@@ -3203,7 +3223,14 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 if (parsedSettings.apis && !parsedSettings.apis.openrouter) {
                     parsedSettings.apis.openrouter = this.settings.apis.openrouter;
                 }
+                // Ensure theme settings exist
+                if (!parsedSettings.theme) {
+                    parsedSettings.theme = this.settings.theme || 'default';
+                }
                 this.settings = { ...this.settings, ...parsedSettings };
+
+                // Apply loaded theme
+                this.applyTheme(this.settings.theme);
             }
         } catch (error) {
             console.error('Erro ao carregar configurações:', error);
@@ -4089,6 +4116,77 @@ Linhas: ${lineCount.toLocaleString('pt-BR')}
         alert(stats);
     }
 
+    applyTheme(themeName) {
+        const starryContainer = document.getElementById('starrySkyContainer');
+        if (!starryContainer) return;
+
+        if (themeName === 'starry-sky') {
+            starryContainer.style.display = 'block';
+            this.initStarrySky();
+        } else {
+            starryContainer.style.display = 'none';
+        }
+    }
+
+    initStarrySky() {
+        const starryContainer = document.getElementById('starrySkyContainer');
+        const starsContainer = starryContainer.querySelector('.stars');
+        const shootingStarsContainer = starryContainer.querySelector('.shooting-stars');
+
+        // Prevent recreating if already exists
+        if (starsContainer.children.length > 0) return;
+
+        // Create stars
+        const starCount = 100;
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            const size = Math.random() * 2 + 1; // 1 to 3px
+            const duration = Math.random() * 3 + 2; // 2 to 5s
+            const delay = Math.random() * 5;
+
+            star.style.left = `${x}%`;
+            star.style.top = `${y}%`;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            star.style.setProperty('--duration', `${duration}s`);
+            star.style.animationDelay = `${delay}s`;
+
+            starsContainer.appendChild(star);
+        }
+
+        // Create shooting stars
+        const shootingStarCount = 3;
+        for (let i = 0; i < shootingStarCount; i++) {
+            const shootingStar = document.createElement('div');
+            shootingStar.className = 'shooting-star';
+
+            // Randomize start position to be outside the screen (Right or Bottom)
+            // Since they move Top-Left (315deg), starting at Right or Bottom ensures they cross the screen
+            if (Math.random() > 0.5) {
+                // Start from Right edge
+                shootingStar.style.left = '100%';
+                shootingStar.style.top = `${Math.random() * 80}%`;
+            } else {
+                // Start from Bottom edge
+                shootingStar.style.top = '100%';
+                shootingStar.style.left = `${Math.random() * 80 + 20}%`;
+            }
+
+            // Longer duration for the whole cycle (mostly waiting)
+            const duration = Math.random() * 10 + 10; // 10s to 20s cycle
+            shootingStar.style.animationDuration = `${duration}s`;
+
+            // Random delay to desync
+            const delay = Math.random() * 10;
+            shootingStar.style.animationDelay = `${delay}s`;
+
+            shootingStarsContainer.appendChild(shootingStar);
+        }
+    }
+
 }
 
 // Global function to open external links
@@ -4111,7 +4209,7 @@ window.openExternalLink = async function (url) {
         // Last resort fallback
         window.open(url, '_blank', 'noopener,noreferrer');
     }
-};
+}
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
