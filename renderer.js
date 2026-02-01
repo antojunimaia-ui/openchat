@@ -1092,11 +1092,6 @@ class OpenChat {
             <div class="thinking-window">
                 <div class="thinking-header" id="${thinkingId}-header">
                     <div class="thinking-status" id="${thinkingId}-status">Thinking</div>
-                    <div class="thinking-toggle" id="${thinkingId}-toggle">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6,9 12,15 18,9"></polyline>
-                        </svg>
-                    </div>
                 </div>
                 <div class="thinking-content" id="${thinkingId}-content">
                     <div class="thinking-text" id="${thinkingId}-text"></div>
@@ -1137,79 +1132,56 @@ class OpenChat {
             return false;
         }
 
-        // Setup toggle functionality
-        if (headerElement) {
-            const toggle = document.getElementById(`${thinkingId}-toggle`);
-            const content = document.getElementById(`${thinkingId}-content`);
-
-            if (toggle && content) {
-                headerElement.addEventListener('click', () => {
-                    const isCollapsed = content.classList.contains('collapsed');
-                    if (isCollapsed) {
-                        content.classList.remove('collapsed');
-                        toggle.classList.remove('collapsed');
-                    } else {
-                        content.classList.add('collapsed');
-                        toggle.classList.add('collapsed');
-                    }
-                });
-            }
-        }
+        // Toggle functionality removed - thoughts are now internal only
 
         console.log('✅ Thinking window created successfully');
         return true;
     }
 
     generateThinkingPrompt(userMessage) {
-        return `Você precisa analisar profundamente a mensagem do usuário antes de responder. Faça um Chain of Thought (CoT) detalhado pensando em primeira pessoa.
+        return `Você precisa analisar a mensagem do usuário antes de responder. Faça um Chain of Thought (CoT) pensando em primeira pessoa.
 
 MENSAGEM DO USUÁRIO: "${userMessage}"
 
-PROCESSO DE PENSAMENTO (pense em voz alta, seja específico):
+⚠️ REGRA IMPORTANTE: Se a mensagem for SIMPLES (cumprimentos como "oi", "olá", "tudo bem", perguntas básicas, etc.), faça uma análise BREVE e DIRETA. Não perca tempo com análises profundas desnecessárias. Reserve análises detalhadas apenas para perguntas complexas.
+
+PROCESSO DE PENSAMENTO (seja específico mas CONCISO):
 
 1. ANÁLISE INICIAL:
-- "Hmm, deixe-me entender o que o usuário realmente está perguntando..."
-- "A pergunta parece ser sobre X, mas talvez haja uma intenção mais profunda..."
-- "Preciso considerar se há contexto implícito aqui..."
+- "Hmm, o que o usuário está perguntando?"
+- "Isso é simples ou complexo?"
+- "Há contexto implícito?"
 
-2. DECOMPOSIÇÃO DO PROBLEMA:
-- "Posso quebrar essa questão em várias partes..."
-- "Na verdade, isso envolve conceitos como A, B e C..."
-- "Há diferentes ângulos para abordar isso..."
+2. DECOMPOSIÇÃO (se necessário):
+- "Posso quebrar isso em partes?"
+- "Quais conceitos estão envolvidos?"
 
-3. CONHECIMENTO E CONEXÕES:
-- "Isso me lembra de conceitos relacionados como..."
+3. CONHECIMENTO E CONEXÕES (se relevante):
+- "Isso me lembra de..."
 - "É importante mencionar que..."
-- "Uma coisa que muitas pessoas não consideram é..."
 
-4. POSSÍVEIS INTERPRETAÇÕES:
+4. POSSÍVEIS INTERPRETAÇÕES (se houver ambiguidade):
 - "O usuário pode estar se referindo a..."
-- "Alternativamente, talvez ele queira saber sobre..."
-- "Preciso esclarecer se ele está falando de X ou Y..."
+- "Alternativamente..."
 
 5. ESTRUTURA DA RESPOSTA:
-- "Vou organizar minha resposta começando com..."
+- "Vou organizar minha resposta..."
 - "Seria útil dar um exemplo de..."
-- "Preciso explicar primeiro A, depois B, e finalmente C..."
 
 6. VERIFICAÇÃO FINAL:
-- "Isso realmente responde à pergunta?"
-- "Estou sendo claro o suficiente?"
-- "Há algo crucial que estou esquecendo?"
-
-EXEMPLO DE PENSAMENTO NATURAL:
-"Hmm, essa pergunta é interessante porque... Na verdade, preciso considerar que... Isso me faz pensar em... Deixe-me estruturar isso de forma que faça sentido... Primeiro vou explicar... depois vou dar um exemplo... e finalmente vou mencionar..."
+- "Isso responde à pergunta?"
+- "Estou sendo claro?"
 
 INSTRUÇÕES:
-- Seja específico sobre o que está analisando
+- Para mensagens SIMPLES: seja BREVE (2-3 frases de pensamento)
+- Para mensagens COMPLEXAS: seja detalhado
 - Use linguagem natural e conversacional
-- Identifique ambiguidades e como resolvê-las
-- Planeje exemplos concretos se necessário
-- Considere o nível de conhecimento do usuário
-- Pense em possíveis perguntas de follow-up
+- Identifique ambiguidades se houver
+- Seja DIRETO e não enrole
 
-IMPORTANTE: Responda APENAS com seu processo de pensamento detalhado e natural, não com a resposta final.`;
+IMPORTANTE: Responda APENAS com seu processo de pensamento, não com a resposta final.`;
     }
+
 
     async performThinking(thinkingPrompt, originalMessageData) {
         try {
@@ -1478,7 +1450,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         // Create response content div
         const responseDiv = document.createElement('div');
         responseDiv.className = 'message-content';
-        responseDiv.style.marginTop = '16px';
+        responseDiv.style.marginTop = '0px'; // Sem espaço entre thinking e resposta
 
         // Add memory indicator if present
         if (memoryAction) {

@@ -596,28 +596,37 @@ body {
 
 /* Thinking Window Styles */
 .thinking-window {
-    margin-bottom: 16px;
+    margin-bottom: 0;
+    /* Sem espaço entre thinking e resposta */
     width: 100%;
     animation: fadeIn 0.3s ease-out;
 }
 
 .thinking-message .message-content {
-    padding-top: 4px;
-    margin-top: 4px;
+    padding-top: 0;
+    margin-top: -4px;
+    /* Margem negativa para aproximar ainda mais */
+}
+
+.thinking-message .message-content p:first-child {
+    margin-top: 0 !important;
+    /* Força a remoção da margem superior do primeiro parágrafo */
 }
 
 .thinking-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 0;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    padding: 0;
+    /* Remover padding para diminuir espaço */
+    cursor: default;
+    /* Não é mais clicável */
     user-select: none;
 }
 
 .thinking-header:hover {
-    opacity: 0.8;
+    opacity: 1;
+    /* Remover efeito hover */
 }
 
 .thinking-status {
@@ -652,14 +661,8 @@ body {
 }
 
 .thinking-toggle {
-    width: 16px;
-    height: 16px;
-    color: #666666;
-    transition: transform 0.2s ease, color 0.2s ease;
-}
-
-.thinking-toggle:hover {
-    color: #888888;
+    display: none;
+    /* Ocultar a seta toggle */
 }
 
 .thinking-toggle.collapsed {
@@ -667,11 +670,8 @@ body {
 }
 
 .thinking-content {
-    padding-left: 24px;
-    max-height: 300px;
-    overflow-y: auto;
-    transition: all 0.3s ease;
-    opacity: 1;
+    display: none;
+    /* Ocultar o conteúdo do pensamento */
 }
 
 .thinking-content.collapsed {
@@ -686,7 +686,8 @@ body {
     line-height: 1.6;
     white-space: pre-wrap;
     word-wrap: break-word;
-    margin: 8px 0;
+    margin: 0 0 8px 0;
+    /* Reduzir margem superior e manter apenas inferior */
     font-style: italic;
 }
 

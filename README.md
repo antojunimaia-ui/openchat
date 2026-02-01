@@ -112,7 +112,7 @@ Se o OpenChat te ajudou, considere:
 
 ### "Não é apenas uma IA, é SUA IA - completamente livre!"
 
-Desenvolvido com ❤️ por Junior_7i | Versão 1.1.2 Beta
+Desenvolvido com ❤️ por Junior_7i | Versão 2.1.3
 
 **IMPORTANTE**: Este software é fornecido "como está", sem garantias de qualquer tipo. O OpenChat é uma ferramenta de IA sem restrições que pode gerar conteúdo sobre qualquer tópico solicitado pelo usuário.
 
