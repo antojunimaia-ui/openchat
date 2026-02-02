@@ -538,6 +538,11 @@ class OpenChat {
                             if (memoryAction && this.currentStreamingMessage) {
                                 this.currentStreamingMessage.memoryAction = memoryAction;
                             }
+                            // Substituir o texto bruto pelo texto processado (com indicadores e sem JSON de função)
+                            if (this.currentStreamingMessage && result.response) {
+                                this.currentStreamingMessage.text = result.response;
+                                this.updateStreamingMessageElement();
+                            }
                         }
                     } else {
                         // Show error message
@@ -594,6 +599,23 @@ class OpenChat {
     }
 
     selectTool(toolId) {
+        if (toolId === 'searchWeb') {
+            const alreadySeen = localStorage.getItem('web-search-alert-seen');
+            if (!alreadySeen) {
+                const modal = document.getElementById('webSearchModalOverlay');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    const understoodBtn = document.getElementById('webSearchUnderstoodBtn');
+                    if (understoodBtn) {
+                        understoodBtn.onclick = () => {
+                            modal.style.display = 'none';
+                            localStorage.setItem('web-search-alert-seen', 'true');
+                        };
+                    }
+                }
+            }
+        }
+
         this.selectedTool = toolId;
         const toolsBtn = document.getElementById('toolsBtn');
         const selectedTool = document.getElementById('selectedTool');
@@ -1649,6 +1671,21 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 setTimeout(() => this.initializeAceEditor(codeId, lang, code.trim()), 10);
 
                 return `<div class="ace-code-block-container">
+                    <div class="code-block-header">
+                        <div class="code-block-controls">
+                            <span class="control-dot red"></span>
+                            <span class="control-dot yellow"></span>
+                            <span class="control-dot green"></span>
+                        </div>
+                        <span class="code-block-lang">${lang}</span>
+                        <button class="copy-code-btn" onclick="window.openchat.copyCode(this)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <span>Copiar</span>
+                        </button>
+                    </div>
                     <div class="ace-editor-wrapper">
                         <div id="${codeId}" class="ace-editor-instance">${cleanCode}</div>
                     </div>
@@ -1685,6 +1722,32 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         formatted = formatted.replace(/<p>\s*<\/p>/g, '');
 
         return formatted;
+    }
+
+    copyCode(btn) {
+        const container = btn.closest('.ace-code-block-container');
+        const editorInstance = container.querySelector('.ace-editor-instance');
+        const editorId = editorInstance.id;
+        const editor = ace.edit(editorId);
+        const code = editor.getValue();
+
+        navigator.clipboard.writeText(code).then(() => {
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Copiado!</span>
+            `;
+            btn.classList.add('copied');
+
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('Erro ao copiar código:', err);
+        });
     }
 
     // Initialize Ace Editor for code blocks
@@ -1848,7 +1911,7 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
 
         // Extract and preserve function indicators
         const indicators = [];
-        text = text.replace(/<div class="function-indicator (reading-document|writing-document)">[\s\S]*?<\/div>/g, (match) => {
+        text = text.replace(/<div class="function-indicator (reading-document|writing-document|web-search|web-scrape)">[\s\S]*?<\/div>/g, (match) => {
             const placeholder = `__INDICATOR_${indicators.length}__`;
             indicators.push(match);
             return placeholder;
@@ -1874,6 +1937,21 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 setTimeout(() => this.initializeAceEditor(codeId, lang, code.trim()), 10);
 
                 return `<div class="ace-code-block-container">
+                    <div class="code-block-header">
+                        <div class="code-block-controls">
+                            <span class="control-dot red"></span>
+                            <span class="control-dot yellow"></span>
+                            <span class="control-dot green"></span>
+                        </div>
+                        <span class="code-block-lang">${lang}</span>
+                        <button class="copy-code-btn" onclick="openchat.copyCode(this)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <span>Copiar</span>
+                        </button>
+                    </div>
                     <div class="ace-editor-wrapper">
                         <div id="${codeId}" class="ace-editor-instance">${cleanCode}</div>
                     </div>
