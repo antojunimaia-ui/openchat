@@ -2590,6 +2590,36 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         if (sectionId === 'memories') {
             this.loadMemoriesSection();
         }
+
+        // Load about info if about section is selected
+        if (sectionId === 'about') {
+            this.loadAboutSection();
+        }
+    }
+
+    loadAboutSection() {
+        const platformElement = document.getElementById('about-platform');
+        const electronElement = document.getElementById('about-electron');
+
+        if (platformElement && electronElement) {
+            // Get platform info
+            const platform = navigator.platform;
+            let platformName = 'Desconhecido';
+            if (platform.toLowerCase().includes('win')) platformName = 'Windows';
+            else if (platform.toLowerCase().includes('mac')) platformName = 'macOS';
+            else if (platform.toLowerCase().includes('linux')) platformName = 'Linux';
+
+            platformElement.textContent = platformName;
+
+            // Get electron version from process if available (in Electron environment)
+            try {
+                // Since this runs in the renderer, window.process might be available or passed via preload
+                const electronVersion = window.process?.versions?.electron || '28.0.0';
+                electronElement.textContent = `v${electronVersion}`;
+            } catch (e) {
+                electronElement.textContent = 'v28.0.0'; // Fallback
+            }
+        }
     }
 
     showSettingsModal() {
@@ -4168,13 +4198,21 @@ Linhas: ${lineCount.toLocaleString('pt-BR')}
 
     applyTheme(themeName) {
         const starryContainer = document.getElementById('starrySkyContainer');
-        if (!starryContainer) return;
+        const auroraContainer = document.getElementById('auroraContainer');
+
+        // Reset all specific theme containers
+        if (starryContainer) starryContainer.style.display = 'none';
+        if (auroraContainer) auroraContainer.style.display = 'none';
 
         if (themeName === 'starry-sky') {
-            starryContainer.style.display = 'block';
-            this.initStarrySky();
-        } else {
-            starryContainer.style.display = 'none';
+            if (starryContainer) {
+                starryContainer.style.display = 'block';
+                this.initStarrySky();
+            }
+        } else if (themeName === 'aurora') {
+            if (auroraContainer) {
+                auroraContainer.style.display = 'block';
+            }
         }
     }
 

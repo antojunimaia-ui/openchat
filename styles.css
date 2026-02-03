@@ -2187,404 +2187,237 @@ input:checked+.toggle-slider:before {
     flex-shrink: 0;
 }
 
-/* About Section Styles */
-.about-content {
+/* Revamped About Section */
+.app-identity-card {
     display: flex;
-    flex-direction: column;
-    gap: 32px;
-}
-
-/* Memories Section Styles */
-.memories-info {
+    align-items: center;
+    gap: 24px;
+    padding: 32px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
     margin-bottom: 24px;
 }
 
-.memories-container {
-    background: #111111;
-    border: 1px solid #333333;
-    border-radius: 12px;
-    padding: 24px;
-}
-
-.memories-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #333333;
-}
-
-.memories-header h4 {
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0;
-}
-
-.btn-secondary {
+.app-icon-large {
+    width: 100px;
+    height: 100px;
+    background: #111;
+    border-radius: 22px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: transparent;
-    border: 1px solid #333333;
-    border-radius: 8px;
-    color: #cccccc;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.btn-secondary:hover {
-    background: rgba(0, 102, 204, 0.1);
-    border-color: #0066cc;
+.app-icon-large svg {
+    width: 60px;
+    height: 60px;
     color: #0066cc;
+    filter: drop-shadow(0 0 8px rgba(0, 102, 204, 0.4));
 }
 
-.btn-secondary svg {
-    width: 16px;
-    height: 16px;
+.app-identity-details {
+    flex: 1;
 }
 
-.memories-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.memory-item {
-    background: #1a1a1a;
-    border: 1px solid #333333;
-    border-radius: 8px;
-    padding: 16px;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.memory-item:hover {
-    border-color: #0066cc;
-    background: #1f1f1f;
-}
-
-.memory-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-}
-
-.memory-category {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: rgba(0, 102, 204, 0.1);
-    border: 1px solid rgba(0, 102, 204, 0.3);
-    border-radius: 12px;
-    font-size: 12px;
-    color: #0066cc;
-    font-weight: 500;
-}
-
-.memory-importance {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.memory-importance.high {
-    background: rgba(255, 107, 107, 0.1);
-    border: 1px solid rgba(255, 107, 107, 0.3);
-    color: #ff6b6b;
-}
-
-.memory-importance.medium {
-    background: rgba(255, 165, 0, 0.1);
-    border: 1px solid rgba(255, 165, 0, 0.3);
-    color: #ffa500;
-}
-
-.memory-importance.low {
-    background: rgba(153, 153, 153, 0.1);
-    border: 1px solid rgba(153, 153, 153, 0.3);
-    color: #999999;
-}
-
-.memory-content {
-    color: #cccccc;
-    font-size: 14px;
-    line-height: 1.5;
-    margin-bottom: 12px;
-}
-
-.memory-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 12px;
-    border-top: 1px solid #333333;
-}
-
-.memory-date {
-    color: #666666;
-    font-size: 12px;
-}
-
-.memory-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.memory-action-btn {
-    background: transparent;
-    border: 1px solid #333333;
-    color: #999999;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.memory-action-btn:hover {
-    border-color: #0066cc;
-    color: #0066cc;
-    background: rgba(0, 102, 204, 0.05);
-}
-
-.memory-action-btn.delete:hover {
-    border-color: #ff6b6b;
-    color: #ff6b6b;
-    background: rgba(255, 107, 107, 0.05);
-}
-
-.memories-empty {
-    text-align: center;
-    padding: 60px 20px;
-    color: #666666;
-}
-
-.memories-empty svg {
-    margin-bottom: 16px;
-    opacity: 0.5;
-}
-
-.memories-empty p {
-    margin: 8px 0;
-    font-size: 14px;
-}
-
-.memories-empty-hint {
-    color: #555555;
-    font-size: 13px;
-    max-width: 400px;
-    margin: 12px auto 0;
-    line-height: 1.5;
-}
-
-.app-info {
-    text-align: center;
-    padding: 32px 24px;
-    background: linear-gradient(135deg, #111111 0%, #1a1a1a 100%);
-    border: 1px solid #333333;
-    border-radius: 12px;
-    position: relative;
-    overflow: hidden;
-}
-
-.app-info::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 102, 204, 0.5), transparent);
-}
-
-.app-logo {
-    margin-bottom: 20px;
-}
-
-.app-logo svg {
-    color: #0066cc;
-    filter: drop-shadow(0 0 10px rgba(0, 102, 204, 0.3));
-}
-
-.app-info h4 {
-    color: #ffffff;
-    font-size: 28px;
+.app-name-title {
+    font-size: 32px;
     font-weight: 700;
     margin: 0 0 8px 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    letter-spacing: -0.5px;
+    letter-spacing: -1px;
+    background: linear-gradient(90deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.app-info .version {
-    color: #0066cc;
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0 0 4px 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.app-info .developer {
-    color: #999999;
-    font-size: 14px;
-    margin: 0 0 20px 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.app-info .developer strong {
-    color: #cccccc;
-    font-weight: 600;
-}
-
-.app-info .description {
-    color: #cccccc;
-    font-size: 15px;
-    line-height: 1.6;
-    margin: 0;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* App Stats */
-.app-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-    margin-bottom: 8px;
-}
-
-.stat-item {
-    background: #111111;
-    border: 1px solid #333333;
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-    transition: all 0.2s ease;
-}
-
-.stat-item:hover {
-    border-color: #0066cc;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.1);
-}
-
-.stat-icon {
-    font-size: 24px;
+.version-badge-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 12px;
 }
 
-.stat-number {
-    display: block;
-    color: #0066cc;
-    font-size: 24px;
-    font-weight: 700;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.stat-label {
-    display: block;
-    color: #cccccc;
-    font-size: 12px;
-    font-weight: 500;
-    margin-top: 4px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Features Highlight */
-.features-highlight {
-    background: #111111;
-    border: 1px solid #333333;
-    border-radius: 8px;
-    padding: 24px;
-}
-
-.features-highlight h5 {
-    color: #ffffff;
-    font-size: 16px;
+.version-badge {
+    background: rgba(0, 102, 204, 0.15);
+    color: #0084ff;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 13px;
     font-weight: 600;
-    margin: 0 0 20px 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    border: 1px solid rgba(0, 102, 204, 0.3);
 }
 
-.features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+.build-tag {
+    color: #666;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.feature-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 16px;
-    text-align: center;
-    transition: all 0.2s ease;
-}
-
-.feature-card:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(0, 102, 204, 0.3);
-}
-
-.feature-icon {
-    font-size: 20px;
-    margin-bottom: 8px;
-}
-
-.feature-card h6 {
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    margin: 0 0 4px 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.feature-card p {
-    color: #999999;
-    font-size: 12px;
+.app-slogan {
+    color: #999;
+    font-size: 15px;
     margin: 0;
-    line-height: 1.4;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* App Links */
-.app-links {
-    background: #111111;
-    border: 1px solid #333333;
-    border-radius: 8px;
-    padding: 24px;
-}
-
-.app-links h5 {
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0 0 16px 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.links-grid {
+/* Info Grid */
+.info-details-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+    margin-bottom: 24px;
+}
+
+.detail-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: #ddd;
+    font-weight: 500;
+}
+
+/* Mission Section */
+.about-mission-section {
+    padding: 20px;
+    background: rgba(0, 102, 204, 0.03);
+    border-radius: 12px;
+    border-left: 4px solid #0066cc;
+    margin-bottom: 24px;
+}
+
+.about-mission-section h5 {
+    color: #fff;
+    font-size: 15px;
+    margin: 0 0 8px 0;
+}
+
+.about-mission-section p {
+    color: #999;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Changelog Preview */
+.changelog-preview {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.changelog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.changelog-header h5 {
+    color: #fff;
+    font-size: 15px;
+    margin: 0;
+}
+
+.text-link-btn {
+    background: none;
+    border: none;
+    color: #0066cc !important;
+    font-size: 13px !important;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.text-link-btn:hover {
+    color: #0084ff !important;
+    text-decoration: underline !important;
+}
+
+.changelog-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.changelog-item {
+    display: flex;
+    gap: 12px;
+}
+
+.item-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.item-text strong {
+    display: block;
+    color: #eee;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.item-text p {
+    color: #777;
+    font-size: 13px;
+    margin: 0;
+}
+
+/* Action Buttons */
+.about-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.action-btn-outline {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #ccc;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.action-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #555;
+    color: #fff;
+}
+
+.about-footer-text {
+    text-align: center;
+    color: #444;
+    font-size: 12px;
 }
 
 .link-item {
@@ -2599,7 +2432,6 @@ input:checked+.toggle-slider:before {
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     transition: all 0.2s ease;
     cursor: pointer;
 }
@@ -4963,7 +4795,286 @@ input:checked+.toggle-slider:before {
     transform: translateY(-50%);
     width: 300px;
     height: 1px;
+
     background: linear-gradient(90deg, #fff, transparent);
+}
+
+/* Memories Section Styles */
+.memories-info {
+    margin-bottom: 24px;
+}
+
+.memories-container {
+    background: #111111;
+    border: 1px solid #333333;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.memories-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #333333;
+}
+
+.memories-header h4 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    color: #cccccc;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(0, 102, 204, 0.1);
+    border-color: #0066cc;
+    color: #0066cc;
+}
+
+.btn-secondary svg {
+    width: 16px;
+    height: 16px;
+}
+
+.memories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.memory-item {
+    background: #1a1a1a;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.memory-item:hover {
+    border-color: #0066cc;
+    background: #1f1f1f;
+}
+
+.memory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.memory-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(0, 102, 204, 0.1);
+    border: 1px solid rgba(0, 102, 204, 0.3);
+    border-radius: 12px;
+    font-size: 12px;
+    color: #0066cc;
+    font-weight: 500;
+}
+
+.memory-importance {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.memory-importance.high {
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    color: #ff6b6b;
+}
+
+.memory-importance.medium {
+    background: rgba(255, 165, 0, 0.1);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    color: #ffa500;
+}
+
+.memory-importance.low {
+    background: rgba(153, 153, 153, 0.1);
+    border: 1px solid rgba(153, 153, 153, 0.3);
+    color: #999999;
+}
+
+.memory-content {
+    color: #cccccc;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.memory-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #333333;
+}
+
+.memory-date {
+    color: #666666;
+    font-size: 12px;
+}
+
+.memory-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.memory-action-btn {
+    background: transparent;
+    border: 1px solid #333333;
+    color: #999999;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.memory-action-btn:hover {
+    border-color: #0066cc;
+    color: #0066cc;
+    background: rgba(0, 102, 204, 0.05);
+}
+
+.memory-action-btn.delete:hover {
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.05);
+}
+
+.memories-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666666;
+}
+
+.memories-empty svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.memories-empty p {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.memories-empty-hint {
+    color: #555555;
+    font-size: 13px;
+    max-width: 400px;
+    margin: 12px auto 0;
+    line-height: 1.5;
+}
+
+/* Aurora Theme Implementation */
+.aurora-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background: #000;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.aurora-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+    opacity: 0.8;
+}
+
+.aurora-lights {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 40%);
+    filter: blur(60px);
+    animation: auroraMove 20s ease-in-out infinite alternate;
+}
+
+@keyframes auroraMove {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    100% {
+        transform: rotate(10deg) scale(1.1);
+    }
+}
+
+/* Aurora Preview Card */
+.aurora-preview {
+    background: linear-gradient(135deg, #0f172a 0%, #312e81 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.aurora-preview .preview-light {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.6) 0%, transparent 70%);
+    filter: blur(15px);
+    animation: auroraPreview 4s ease-in-out infinite alternate;
+}
+
+@keyframes auroraPreview {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: translate(-10px, 10px) scale(1.2);
+        opacity: 0.8;
+    }
 }
 
 @keyframes animateShootingStar {
