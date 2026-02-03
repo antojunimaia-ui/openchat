@@ -312,25 +312,62 @@ async function webSearch(query) {
     if (!response.ok) throw new Error('Falha ao acessar o buscador');
 
     const html = await response.text();
+    console.log(`📄 Resposta do buscador recebida. Tamanho: ${html.length} caracteres`);
     const results = [];
-
-    // Regex para capturar resultados do DuckDuckGo HTML
-    // Formato: <a class="result__a" href="URL">TITULO</a> ... <a class="result__snippet">SNIPPET</a>
-    const resultRegex = /<a class="result__a" href="([^"]+)">([^<]+)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-
-    let match;
     let count = 0;
-    while ((match = resultRegex.exec(html)) !== null && count < 5) {
-      results.push({
-        url: match[1],
-        title: match[2].trim(),
-        snippet: match[3].replace(/<[^>]+>/g, '').trim()
-      });
-      count++;
+
+    // Divisão por blocos de resultado mais genérica
+    let blocks = html.split('class="result ').slice(1);
+    if (blocks.length === 0) blocks = html.split('result__body').slice(1);
+    if (blocks.length === 0) blocks = html.split('links_main').slice(1);
+
+    console.log(`📦 Blocos identificados: ${blocks.length}. Refinando busca...`);
+
+    for (const block of blocks) {
+      if (count >= 10) break;
+
+      // Buscar URL e Título - tentamos múltiplos padrões
+      let titleMatch = block.match(/class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+      if (!titleMatch) titleMatch = block.match(/href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+
+      // Buscar Snippet
+      let snippetMatch = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/(?:a|div)>/i);
+
+      if (titleMatch) {
+        let url = titleMatch[1];
+        if (url.includes('duckduckgo.com/y.js') || (url.startsWith('http') === false && !url.includes('uddg='))) continue;
+
+        if (url.includes('uddg=')) {
+          try {
+            const parts = url.split('uddg=');
+            if (parts[1]) url = decodeURIComponent(parts[1].split('&')[0]);
+          } catch (e) { }
+        }
+
+        const title = titleMatch[2].replace(/<[^>]+>/g, '').trim();
+        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').trim() : 'Clique no link para ver mais detalhes.';
+
+        if (url && title && !url.includes('duckduckgo.com') && title.length > 2) {
+          results.push({ url, title, snippet });
+          count++;
+        }
+      }
+    }
+
+    console.log(`✅ Encontrados ${results.length} resultados válidos.`);
+
+    if (results.length === 0) {
+      // Fallback de emergência com regex global simples
+      const globalRegex = /<a class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+      let m;
+      while ((m = globalRegex.exec(html)) !== null && count < 6) {
+        results.push({ url: m[1], title: m[2].replace(/<[^>]+>/g, '').trim(), snippet: 'Ver link para detalhes.' });
+        count++;
+      }
     }
 
     if (results.length === 0) {
-      return { success: false, error: 'Nenhum resultado encontrado.' };
+      return { success: false, error: 'Nenhum resultado encontrado no buscador para esta query.' };
     }
 
     return { success: true, results: results };
@@ -377,24 +414,35 @@ async function webScrape(url) {
 // Função para processar Function Calls na resposta da IA
 async function processFunctionCalls(responseText, event) {
   console.log('=== PROCESSANDO FUNCTION CALLS ===');
+  // Normalizar resposta (remover ```json ... ``` se a IA colocou as tags dentro)
+  let responseToProcess = responseText
+    .replace(/```json\s*\[FUNCTION_CALL\]/gi, '[FUNCTION_CALL]')
+    .replace(/\[\/FUNCTION_CALL\]\s*```/gi, '[/FUNCTION_CALL]');
+
   // Verificar se contém [FUNCTION_CALL]
-  const hasFC = responseText.includes('[FUNCTION_CALL]');
+  const hasFC = responseToProcess.includes('[FUNCTION_CALL]');
   console.log('Contém [FUNCTION_CALL]?', hasFC);
 
   if (hasFC) {
-    const startIndex = responseText.indexOf('[FUNCTION_CALL]');
-    const endIndex = responseText.indexOf('[/FUNCTION_CALL]');
+    const startIndex = responseToProcess.indexOf('[FUNCTION_CALL]');
+    const endIndex = responseToProcess.indexOf('[/FUNCTION_CALL]');
     console.log('Índice início:', startIndex);
     console.log('Índice fim:', endIndex);
     if (startIndex >= 0 && endIndex >= 0) {
-      console.log('Conteúdo entre tags:', responseText.substring(startIndex, endIndex + 16));
+      console.log('Conteúdo entre tags:', responseToProcess.substring(startIndex, endIndex + 16));
     }
   }
 
   // Regex mais robusta que captura function calls em qualquer formato
   const functionCallRegex = /\[FUNCTION_CALL\]\s*([\s\S]*?)\s*\[\/FUNCTION_CALL\]/gi;
   const calls = [];
-  let processedText = responseText;
+
+  // Usar a versão normalizada para o texto final também, 
+  // e limpar artefatos de markdown que a IA às vezes joga no início ou ao redor das chamadas
+  let processedText = responseToProcess
+    .replace(/^[\s\n\r*#_~>|-]+/, '') // Limpa lixo de formatação no início extremo
+    .replace(/\*{3,}/g, '')           // Remove sequências de 3 ou mais asteriscos (****)
+    .trim();
 
   // Encontrar todas as matches primeiro
   const matches = [];
@@ -403,7 +451,7 @@ async function processFunctionCalls(responseText, event) {
   // Reset regex
   functionCallRegex.lastIndex = 0;
 
-  while ((match = functionCallRegex.exec(responseText)) !== null) {
+  while ((match = functionCallRegex.exec(responseToProcess)) !== null) {
     matches.push({
       fullMatch: match[0],
       jsonContent: match[1].trim(),
@@ -420,13 +468,13 @@ async function processFunctionCalls(responseText, event) {
 
     const startTag = '[FUNCTION_CALL]';
     const endTag = '[/FUNCTION_CALL]';
-    let startIndex = responseText.indexOf(startTag);
+    let startIndex = responseToProcess.indexOf(startTag);
 
     while (startIndex !== -1) {
-      const endIndex = responseText.indexOf(endTag, startIndex);
+      const endIndex = responseToProcess.indexOf(endTag, startIndex);
       if (endIndex !== -1) {
-        const fullMatch = responseText.substring(startIndex, endIndex + endTag.length);
-        const jsonContent = responseText.substring(startIndex + startTag.length, endIndex).trim();
+        const fullMatch = responseToProcess.substring(startIndex, endIndex + endTag.length);
+        const jsonContent = responseToProcess.substring(startIndex + startTag.length, endIndex).trim();
 
         matches.push({
           fullMatch: fullMatch,
@@ -436,7 +484,7 @@ async function processFunctionCalls(responseText, event) {
 
         console.log('Match manual encontrado:', { fullMatch: fullMatch.substring(0, 100), jsonContent: jsonContent.substring(0, 100) });
 
-        startIndex = responseText.indexOf(startTag, endIndex);
+        startIndex = responseToProcess.indexOf(startTag, endIndex);
       } else {
         break;
       }
@@ -449,9 +497,16 @@ async function processFunctionCalls(responseText, event) {
   for (let i = matches.length - 1; i >= 0; i--) {
     const matchData = matches[i];
     try {
-      console.log('Processando function call:', matchData.jsonContent.substring(0, 100));
+      // Limpar artefatos de Markdown (asteriscos, crases, etc) que a IA pode ter colocado
+      const cleanJsonContent = matchData.jsonContent
+        .replace(/^\*+/, '')
+        .replace(/\*+$/, '')
+        .replace(/^`+json/, '')
+        .replace(/^`+/, '')
+        .replace(/`+$/, '')
+        .trim();
 
-      const functionData = JSON.parse(matchData.jsonContent);
+      const functionData = JSON.parse(cleanJsonContent);
       const functionName = functionData.function;
       const args = functionData.arguments;
 
@@ -739,15 +794,19 @@ ipcMain.handle('send-message', async (event, messageData) => {
     finalSystemPrompt += 'Você pode pesquisar na internet e ler o conteúdo de páginas web:\n\n';
     finalSystemPrompt += '1. web_search(query): Pesquisa no Google/DuckDuckGo\n';
     finalSystemPrompt += '   - Use para encontrar informações atuais, notícias ou links sobre um tema.\n';
+    finalSystemPrompt += '   - ⚠️ IMPORTANTE: Após chamar esta função, você DEVE PARAR sua resposta imediatamente.\n';
     finalSystemPrompt += '2. web_scrape(url): Lê o conteúdo de texto de uma página específica\n';
-    finalSystemPrompt += '   - Use para ler o conteúdo de um link encontrado ou de uma URL fornecida.\n\n';
-    finalSystemPrompt += 'COMO USAR:\n';
-    finalSystemPrompt += '- Se precisar de informações que não possui, use web_search.\n';
-    finalSystemPrompt += '- Se encontrar um link relevante, use web_scrape para ler os detalhes.\n';
-    finalSystemPrompt += '- Combine os dados das pesquisas para dar uma resposta completa.\n';
-    finalSystemPrompt += '- SEMPRE cite as fontes das informações encontradas.\n\n';
+    finalSystemPrompt += '   - Use para ler o conteúdo de um link encontrado ou de uma URL fornecida.\n';
+    finalSystemPrompt += '   - ⚠️ IMPORTANTE: Após chamar esta função, você DEVE PARAR sua resposta imediatamente.\n\n';
+    finalSystemPrompt += 'FLUXO DE TRABALHO:\n';
+    finalSystemPrompt += '1. Se precisar de informações que não possui, use web_search.\n';
+    finalSystemPrompt += '2. Após os resultados da busca, ANALISE os links e snippets.\n';
+    finalSystemPrompt += '3. DECIDA se precisa ler algum link específico usando web_scrape para obter mais detalhes.\n';
+    finalSystemPrompt += '4. Se decidir não entrar em nenhum link, responda ao usuário com o que encontrou na pesquisa.\n';
+    finalSystemPrompt += '5. SEMPRE cite as fontes das informações encontradas.\n';
+    finalSystemPrompt += '6. Se o usuário fornecer uma informação ou correção (ex: uma data), use as ferramentas para VERIFICAR essa informação antes de discordar. Se a busca falhar, priorize a correção do usuário se ela parecer plausível.\n\n';
     if (messageData.tool === 'searchWeb') {
-      finalSystemPrompt += '⚠️ INSTRUÇÃO CRÍTICA: O usuário ATIVOU a busca na web para esta mensagem. Você DEVE realizar uma pesquisa agora mesmo antes de responder, para garantir que as informações estejam atualizadas e precisas.\n';
+      finalSystemPrompt += '⚠️ INSTRUÇÃO CRÍTICA: O usuário ATIVOU a busca na web para esta mensagem. Você DEVE realizar uma pesquisa agora mesmo antes de responder.\n';
     }
     finalSystemPrompt += '=== FIM ===\n';
 
@@ -763,106 +822,96 @@ ipcMain.handle('send-message', async (event, messageData) => {
       response = await callOpenRouterAPI(apiConfig, messageData, finalSystemPrompt);
     }
 
-    // Processar Function Calls na resposta
-    const processedResponse = await processFunctionCalls(response, event);
-    console.log('Function calls detectadas:', processedResponse.calls.length);
+    // Loop para processar Function Calls e possíveis continuações (Pesquisa Web, Arquiteto, etc)
+    let currentProcessedResponse = await processFunctionCalls(response, event);
+    let finalResponseText = currentProcessedResponse.text;
+    let finalFunctionCalls = [...currentProcessedResponse.calls];
+    let iteration = 0;
+    const maxIterations = 5;
 
-    // Check if we need to continue the response (Architect or Web Search)
-    const hasGetDocument = processedResponse.calls.some(call => call.function === 'get_architect_document');
-    const hasWebTools = processedResponse.calls.some(call => call.function === 'web_search' || call.function === 'web_scrape');
+    // Histórico local desta rodada de ferramentas para manter o contexto entre iterações
+    let toolSessionMessages = [
+      { type: 'bot', text: response }
+    ];
 
-    if ((hasGetDocument && messageData.isArchitectMode) || hasWebTools) {
-      console.log('🏗️ Tool detectada - fazendo segunda chamada com resultados injetados');
+    while (iteration < maxIterations) {
+      const hasGetDocument = currentProcessedResponse.calls.some(call => call.function === 'get_architect_document');
+      const hasWebTools = currentProcessedResponse.calls.some(call => call.function === 'web_search' || call.function === 'web_scrape');
+
+      if (!((hasGetDocument && messageData.isArchitectMode) || hasWebTools)) {
+        break;
+      }
+
+      console.log(`🏗️ Tool detectada (iteração ${iteration + 1}) - fazendo chamada de continuação`);
 
       let continuationText = '';
-
       if (hasGetDocument) {
-        const documentCall = processedResponse.calls.find(call => call.function === 'get_architect_document');
+        const documentCall = currentProcessedResponse.calls.find(call => call.function === 'get_architect_document');
         const documentContent = documentCall.result?.document || '';
-
-        if (!documentContent || documentContent.trim().length === 0) {
-          console.log('⚠️ Documento vazio, não fazendo segunda chamada');
-          return {
-            success: true,
-            response: processedResponse.text + '\n\n(O documento está vazio no momento)',
-            functionCalls: processedResponse.calls,
-            timestamp: Date.now()
-          };
-        }
-
-        continuationText = `Baseado no documento que você acabou de ler, continue sua análise e resposta ao usuário.
-
-DOCUMENTO:
-${documentContent}
-
-MENSAGEM DO USUÁRIO: ${messageData.text}
-
-Continue sua resposta de forma natural:`;
+        continuationText = documentContent && documentContent.trim()
+          ? `[SISTEMA] Documento lido com sucesso:\n\n${documentContent}\n\nAnalise e prossiga.`
+          : `[SISTEMA] O documento está vazio no momento.`;
       } else {
-        const toolResults = processedResponse.calls
+        const toolResults = currentProcessedResponse.calls
           .filter(call => call.function === 'web_search' || call.function === 'web_scrape')
           .map(call => `Função: ${call.function}\nResultado: ${JSON.stringify(call.result)}`)
           .join('\n\n');
 
-        continuationText = `Baseado nos resultados da pesquisa web abaixo, responda ao usuário de forma completa, filtrando o que for inútil e citando as fontes.\n\n=== RESULTADOS DA PESQUISA ===\n${toolResults}\n\nResponda agora ao usuário:`;
+        continuationText = `[SISTEMA] Resultados das ferramentas:\n\n${toolResults}\n\nAnalise os resultados. Você pode usar mais ferramentas ou responder ao usuário (cite fontes).`;
       }
 
-      // Prepare continuation message data - simpler approach
+      // Atualizar o histórico para incluir o que aconteceu até aqui
+      const updatedHistory = [
+        ...(messageData.conversationHistory || []),
+        { type: 'user', text: messageData.text },
+        ...toolSessionMessages
+      ];
+
       const continuationMessageData = {
+        ...messageData,
         text: continuationText,
         tool: null,
         image: null,
-        conversationHistory: [],
-        personalityPrompt: messageData.personalityPrompt,
-        isArchitectMode: false // Don't trigger architect mode again
+        conversationHistory: updatedHistory,
+        isArchitectMode: false
       };
 
-      // Make second API call with simpler system prompt
-      let continuationResponse;
-      const simpleSystemPrompt = systemPrompt + (messageData.personalityPrompt ? '\n\n' + messageData.personalityPrompt : '');
-
+      let nextResponse;
       try {
         if (activeModel === 'gemini') {
-          continuationResponse = await callGeminiAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
+          nextResponse = await callGeminiAPI(apiConfig, continuationMessageData, finalSystemPrompt);
         } else if (activeModel === 'mistral') {
-          continuationResponse = await callMistralAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
+          nextResponse = await callMistralAPI(apiConfig, continuationMessageData, finalSystemPrompt);
         } else if (activeModel === 'zai') {
-          continuationResponse = await callZaiAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
+          nextResponse = await callZaiAPI(apiConfig, continuationMessageData, finalSystemPrompt);
         } else if (activeModel === 'openrouter') {
-          continuationResponse = await callOpenRouterAPI(apiConfig, continuationMessageData, simpleSystemPrompt);
+          nextResponse = await callOpenRouterAPI(apiConfig, continuationMessageData, finalSystemPrompt);
         }
 
-        // Process continuation response
-        const processedContinuation = await processFunctionCalls(continuationResponse, event);
+        // Adicionar o resultado do sistema e a nova resposta da IA ao histórico da sessão
+        toolSessionMessages.push({ type: 'user', text: continuationText });
+        toolSessionMessages.push({ type: 'bot', text: nextResponse });
 
-        // Combine responses
-        const combinedText = processedResponse.text.trim() + '\n\n' + processedContinuation.text.trim();
-        const combinedCalls = [...processedResponse.calls, ...processedContinuation.calls];
+        currentProcessedResponse = await processFunctionCalls(nextResponse, event);
 
-        console.log('✅ Resposta combinada com documento injetado');
+        // Acumular texto (se houver texto visível além da chamada da função)
+        if (currentProcessedResponse.text.trim()) {
+          finalResponseText = (finalResponseText.trim() + '\n\n' + currentProcessedResponse.text.trim()).trim();
+        }
+        finalFunctionCalls.push(...currentProcessedResponse.calls);
 
-        return {
-          success: true,
-          response: combinedText,
-          functionCalls: combinedCalls,
-          timestamp: Date.now()
-        };
+        iteration++;
       } catch (error) {
-        console.error('❌ Erro na segunda chamada:', error);
-        // Return original response if continuation fails
-        return {
-          success: true,
-          response: processedResponse.text + '\n\n(Erro ao processar continuação)',
-          functionCalls: processedResponse.calls,
-          timestamp: Date.now()
-        };
+        console.error('❌ Erro na chamada de continuação:', error);
+        finalResponseText += '\n\n(Erro ao processar continuação da pesquisa)';
+        break;
       }
     }
 
     return {
       success: true,
-      response: processedResponse.text,
-      functionCalls: processedResponse.calls,
+      response: finalResponseText.trim(),
+      functionCalls: finalFunctionCalls,
       timestamp: Date.now()
     };
 
@@ -1476,6 +1525,11 @@ async function callZaiAPI(apiConfig, messageData, systemPrompt) {
                 if (delta.content) {
                   const content = delta.content;
                   fullResponse += content;
+
+                  // Debug: Ver se a tag está sendo formada
+                  if (fullResponse.includes('[FUNCTION_CALL]') && !fullResponse.includes('[/FUNCTION_CALL]')) {
+                    // console.log('Function call em formação...');
+                  }
 
                   // Send streaming update to renderer
                   if (mainWindow) {
