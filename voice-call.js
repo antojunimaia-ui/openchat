@@ -455,8 +455,12 @@ class VoiceCallManager {
     }
 
     speakRobotic(text) {
+        // Remove special characters that shouldn't be spoken
+        // Removes characters: *, #, _, `, >, ~, [, ]
+        const sanitizedText = text.replace(/[*#_`>~\[\]]/g, '');
+
         // Create new utterance
-        this.currentUtterance = new SpeechSynthesisUtterance(text);
+        this.currentUtterance = new SpeechSynthesisUtterance(sanitizedText);
 
         // --- MELHORIA DE VOZ ---
         // Tenta encontrar a melhor voz possível em pt-BR
