@@ -1646,28 +1646,30 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         }
     }
 
-    // Optimized formatting for streaming - handles partial content gracefully
+    // Optimized formatting for streaming using marked.js
     formatBotMessageStreaming(text) {
         if (!text) return '';
 
-        // Remove function calls completas (com tag de fechamento)
+        // Remove complete function calls
         text = text.replace(/\[FUNCTION_CALL\]\s*[\s\S]*?\s*\[\/FUNCTION_CALL\]/gi, '');
 
-        // Remove function calls incompletas (ainda sendo escritas durante streaming)
-        // Isso esconde o conteúdo desde o momento que [FUNCTION_CALL] aparece
+        // Remove incomplete function calls
         text = text.replace(/\[FUNCTION_CALL\][\s\S]*$/gi, '');
 
         text = text.trim();
 
-        // Apply formatting but handle incomplete markdown gracefully
-        let formatted = text
-            // Complete code blocks only (avoid breaking incomplete ones)
-            .replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, language, code) => {
+        try {
+            // Setup custom renderer for Ace Editor integration
+            const renderer = new marked.Renderer();
+
+            renderer.code = (token) => {
+                const code = typeof token === 'string' ? token : token.text;
+                const language = (typeof token === 'object' && token.lang) ? token.lang : 'text';
                 const lang = language || 'text';
                 const codeId = 'ace-editor-' + Math.random().toString(36).substr(2, 9);
                 const cleanCode = this.escapeHtml(code.trim());
 
-                // Queue Ace Editor initialization for after DOM update
+                // Queue Ace Editor initialization
                 setTimeout(() => this.initializeAceEditor(codeId, lang, code.trim()), 10);
 
                 return `<div class="ace-code-block-container">
@@ -1690,38 +1692,19 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                         <div id="${codeId}" class="ace-editor-instance">${cleanCode}</div>
                     </div>
                 </div>`;
-            })
-            // Inline code (only complete backticks)
-            .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-            // Bold text (only complete pairs)
-            .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-            // Italic text (only complete pairs)
-            .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
-            // Line breaks
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/\n/g, '<br>');
+            };
 
-        // Handle lists (only complete lines)
-        formatted = formatted.replace(/^- (.+)$/gm, '<li>$1</li>');
-        formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ul>$1</ul>');
-
-        formatted = formatted.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-        formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ol>$1</ol>');
-
-        // Clean up multiple consecutive ul/ol tags
-        formatted = formatted.replace(/<\/ul>\s*<ul>/g, '');
-        formatted = formatted.replace(/<\/ol>\s*<ol>/g, '');
-
-        // Wrap in paragraphs if not already wrapped
-        if (!formatted.startsWith('<')) {
-            formatted = '<p>' + formatted + '</p>';
+            // Parse with marked
+            return marked.parse(text, {
+                renderer,
+                breaks: true,
+                gfm: true
+            });
+        } catch (error) {
+            console.error('Error parsing markdown during streaming:', error);
+            // Fallback for streaming
+            return `<p>${text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
         }
-
-        // Clean up empty paragraphs
-        formatted = formatted.replace(/<p><\/p>/g, '');
-        formatted = formatted.replace(/<p>\s*<\/p>/g, '');
-
-        return formatted;
     }
 
     copyCode(btn) {
@@ -1905,11 +1888,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         }
     }
 
-    // Rich text formatting
+    // Rich text formatting using marked.js
     formatBotMessage(text) {
         if (!text) return '';
 
-        // Extract and preserve function indicators
+        // Extract and preserve function indicators (application specifically formatted HTML)
         const indicators = [];
         text = text.replace(/<div class="function-indicator (reading-document|writing-document|web-search|web-scrape)">[\s\S]*?<\/div>/g, (match) => {
             const placeholder = `__INDICATOR_${indicators.length}__`;
@@ -1917,23 +1900,26 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             return placeholder;
         });
 
-        // Remove function calls completas (com tag de fechamento)
+        // Remove complete function calls
         text = text.replace(/\[FUNCTION_CALL\]\s*[\s\S]*?\s*\[\/FUNCTION_CALL\]/gi, '');
 
-        // Remove function calls incompletas (ainda sendo escritas durante streaming)
+        // Remove incomplete function calls
         text = text.replace(/\[FUNCTION_CALL\][\s\S]*$/gi, '');
 
         text = text.trim();
 
-        // Convert markdown-like formatting to HTML
-        let formatted = text
-            // Code blocks with language support (```language\ncode```)
-            .replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, language, code) => {
+        try {
+            // Setup custom renderer for Ace Editor integration
+            const renderer = new marked.Renderer();
+
+            renderer.code = (token) => {
+                const code = typeof token === 'string' ? token : token.text;
+                const language = (typeof token === 'object' && token.lang) ? token.lang : 'text';
                 const lang = language || 'text';
                 const codeId = 'ace-editor-' + Math.random().toString(36).substr(2, 9);
                 const cleanCode = this.escapeHtml(code.trim());
 
-                // Queue Ace Editor initialization for after DOM update
+                // Queue Ace Editor initialization
                 setTimeout(() => this.initializeAceEditor(codeId, lang, code.trim()), 10);
 
                 return `<div class="ace-code-block-container">
@@ -1956,46 +1942,26 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                         <div id="${codeId}" class="ace-editor-instance">${cleanCode}</div>
                     </div>
                 </div>`;
-            })
-            // Inline code
-            .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-            // Bold text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            // Italic text
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            // Blockquotes
-            .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-            // Line breaks (preserve double line breaks as paragraph breaks)
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/\n/g, '<br>');
+            };
 
-        // Handle unordered lists
-        formatted = formatted.replace(/^- (.+)$/gm, '<li>$1</li>');
-        formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ul>$1</ul>');
+            // Parse with marked
+            let formatted = marked.parse(text, {
+                renderer,
+                breaks: true,
+                gfm: true
+            });
 
-        // Handle ordered lists
-        formatted = formatted.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-        formatted = formatted.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ol>$1</ol>');
+            // Restore function indicators
+            indicators.forEach((indicator, index) => {
+                formatted = formatted.replace(`__INDICATOR_${index}__`, indicator);
+            });
 
-        // Clean up multiple consecutive ul/ol tags
-        formatted = formatted.replace(/<\/ul>\s*<ul>/g, '');
-        formatted = formatted.replace(/<\/ol>\s*<ol>/g, '');
-
-        // Wrap in paragraphs if not already wrapped
-        if (!formatted.startsWith('<')) {
-            formatted = '<p>' + formatted + '</p>';
+            return formatted;
+        } catch (error) {
+            console.error('Error parsing markdown with marked:', error);
+            // Fallback to simpler formatting
+            return `<p>${text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
         }
-
-        // Clean up empty paragraphs
-        formatted = formatted.replace(/<p><\/p>/g, '');
-        formatted = formatted.replace(/<p>\s*<\/p>/g, '');
-
-        // Restore function indicators
-        indicators.forEach((indicator, index) => {
-            formatted = formatted.replace(`__INDICATOR_${index}__`, indicator);
-        });
-
-        return formatted;
     }
 
     // Escape HTML
