@@ -4688,6 +4688,15 @@ input:checked+.toggle-slider:before {
     background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
 }
 
+.crimson-preview {
+    background: linear-gradient(180deg, #ff0000 0%, #ff0000 50%, #3c0000 100%);
+}
+
+.crimson-preview .preview-bg,
+.crimson-preview .preview-ui {
+    display: none;
+}
+
 .starry-preview .preview-star {
     position: absolute;
     background: white;

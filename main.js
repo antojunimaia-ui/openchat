@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const ContentFilter = require('./content_filter');
+const { autoUpdater } = require('electron-updater');
+const mcpManager = require('./mcp_manager');
 
 let mainWindow;
 let contentFilter;
@@ -43,6 +45,24 @@ app.whenReady().then(() => {
   console.log('✅ Content filter inicializado (JavaScript)');
 
   createWindow();
+
+  // Inicializar auto-updater
+  autoUpdater.checkForUpdatesAndNotify().catch(err => console.error('Erro no auto-updater:', err));
+
+  // Inicializar MCP Servers
+  mcpManager.loadServers();
+
+  autoUpdater.on('update-available', () => {
+    if (mainWindow) {
+      mainWindow.webContents.send('updater-message', { type: 'available', message: 'Nova atualização disponível! Baixando em background...' });
+    }
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    if (mainWindow) {
+      mainWindow.webContents.send('updater-message', { type: 'downloaded', message: 'Atualização baixada. O app será atualizado ao reiniciar.' });
+    }
+  });
 });
 
 app.on('window-all-closed', () => {
@@ -263,6 +283,39 @@ ipcMain.handle('fetch-openrouter-models', async (event, apiKey) => {
     return { success: true, models: data.data };
   } catch (error) {
     console.error('Error fetching Open Router models:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC Handler para servidores MCP
+ipcMain.handle('get-mcp-servers', async () => {
+  try {
+    const os = require('os');
+    const serversPath = path.join(os.homedir(), '.openchat', 'mcp_servers.json');
+    if (!require('fs').existsSync(serversPath)) {
+      return { success: true, servers: {} };
+    }
+    const data = await fs.readFile(serversPath, 'utf8');
+    const config = JSON.parse(data);
+    return { success: true, servers: config.servers || {} };
+  } catch (error) {
+    console.error('Erro ao ler servidores MCP:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-mcp-servers', async (event, servers) => {
+  try {
+    const os = require('os');
+    const serversPath = path.join(os.homedir(), '.openchat', 'mcp_servers.json');
+    await fs.writeFile(serversPath, JSON.stringify({ servers }, null, 2), 'utf8');
+
+    // Recarregar os servidores no main process
+    mcpManager.reloadServers();
+
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao salvar servidores MCP:', error);
     return { success: false, error: error.message };
   }
 });
@@ -591,6 +644,14 @@ async function processFunctionCalls(responseText, event) {
         result = await webSearch(args.query);
       } else if (functionName === 'web_scrape') {
         result = await webScrape(args.url);
+      } else {
+        // Tentar ver se é uma ferramenta do MCP
+        const mcpResult = await mcpManager.handleToolCall(functionName, args);
+        if (mcpResult) {
+          result = mcpResult;
+        } else {
+          result = { success: false, error: "Ferramenta desconhecida ou indisponível" };
+        }
       }
 
       calls.unshift({ // unshift porque estamos processando de trás pra frente
@@ -609,6 +670,10 @@ async function processFunctionCalls(responseText, event) {
         indicator = '<div class="function-indicator web-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>Buscando na web...</span></div>';
       } else if (functionName === 'web_scrape') {
         indicator = '<div class="function-indicator web-scrape"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"></path><path d="M16 5V3"></path><path d="M8 5V3"></path><path d="M3 9h18"></path><path d="M21 12H3"></path><path d="M22 22l-4-4"></path><path d="M18 22l4-4"></path></svg><span>Lendo página...</span></div>';
+      } else {
+        // Indicador genérico e fallback para MCP tools
+        const genericName = functionName.replace(/_/g, ' ');
+        indicator = `<div class="function-indicator"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Executando ${genericName}...</span></div>`;
       }
 
       // Remover a chamada de função do texto processado e adicionar indicador
@@ -798,6 +863,10 @@ ipcMain.handle('send-message', async (event, messageData) => {
     finalSystemPrompt += '2. web_scrape(url): Lê o conteúdo de texto de uma página específica\n';
     finalSystemPrompt += '   - Use para ler o conteúdo de um link encontrado ou de uma URL fornecida.\n';
     finalSystemPrompt += '   - ⚠️ IMPORTANTE: Após chamar esta função, você DEVE PARAR sua resposta imediatamente.\n\n';
+
+    // Adicionar ferramentas MCP instaladas, caso haja
+    finalSystemPrompt += mcpManager.getSystemPromptExtension();
+
     finalSystemPrompt += 'FLUXO DE TRABALHO:\n';
     finalSystemPrompt += '1. Se precisar de informações que não possui, use web_search.\n';
     finalSystemPrompt += '2. Após os resultados da busca, ANALISE os links e snippets.\n';
@@ -836,9 +905,11 @@ ipcMain.handle('send-message', async (event, messageData) => {
 
     while (iteration < maxIterations) {
       const hasGetDocument = currentProcessedResponse.calls.some(call => call.function === 'get_architect_document');
-      const hasWebTools = currentProcessedResponse.calls.some(call => call.function === 'web_search' || call.function === 'web_scrape');
+      const hasToolCallNeedsFeedback = currentProcessedResponse.calls.some(call =>
+        !['save_memory', 'update_memory', 'update_architect_document', 'get_architect_document'].includes(call.function)
+      );
 
-      if (!((hasGetDocument && messageData.isArchitectMode) || hasWebTools)) {
+      if (!((hasGetDocument && messageData.isArchitectMode) || hasToolCallNeedsFeedback)) {
         break;
       }
 
@@ -853,11 +924,11 @@ ipcMain.handle('send-message', async (event, messageData) => {
           : `[SISTEMA] O documento está vazio no momento.`;
       } else {
         const toolResults = currentProcessedResponse.calls
-          .filter(call => call.function === 'web_search' || call.function === 'web_scrape')
-          .map(call => `Função: ${call.function}\nResultado: ${JSON.stringify(call.result)}`)
+          .filter(call => !['save_memory', 'update_memory', 'update_architect_document', 'get_architect_document'].includes(call.function))
+          .map(call => `Função: ${call.function}\nResultado: ${JSON.stringify(call.result || { error: 'Sem resultado' })}`)
           .join('\n\n');
 
-        continuationText = `[SISTEMA] Resultados das ferramentas:\n\n${toolResults}\n\nAnalise os resultados. Você pode usar mais ferramentas ou responder ao usuário (cite fontes).`;
+        continuationText = `[SISTEMA] Resultados das ferramentas executadas:\n\n${toolResults}\n\nAnalise os resultados. Você pode usar mais ferramentas ou responder ao usuário baseando-se nas informações recebidas.`;
       }
 
       // Atualizar o histórico para incluir o que aconteceu até aqui

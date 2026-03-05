@@ -12,7 +12,8 @@
     "build-win": "electron-builder --win --x64 --publish=never",
     "build-linux": "electron-builder --linux --x64 --publish=never",
     "build-chromeos": "electron-builder --linux --x64 --publish=never",
-    "build-all": "electron-builder --win --linux --mac --x64 --publish=never"
+    "build-all": "electron-builder --win --linux --mac --x64 --publish=never",
+    "publish-win": "electron-builder --win --x64 --publish=always"
   },
   "keywords": [
     "electron",
@@ -62,6 +63,16 @@
         "zip"
       ],
       "category": "public.app-category.utilities"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "antojunimaia-ui",
+      "repo": "openchat",
+      "releaseType": "release"
     }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "electron-updater": "^6.8.3"
   }
 }

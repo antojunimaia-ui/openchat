@@ -35,9 +35,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Open Router model fetching
   fetchOpenRouterModels: (apiKey) => ipcRenderer.invoke('fetch-openrouter-models', apiKey),
 
+  // MCP Servers
+  getMcpServers: () => ipcRenderer.invoke('get-mcp-servers'),
+  saveMcpServers: (servers) => ipcRenderer.invoke('save-mcp-servers', servers),
+
   // Listeners para eventos
   onMessageReceived: (callback) => {
     ipcRenderer.on('message-received', callback);
+  },
+
+  onUpdaterMessage: (callback) => {
+    ipcRenderer.on('updater-message', callback);
   },
 
   onStreamingUpdate: (callback) => {

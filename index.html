@@ -81,6 +81,25 @@
             <div class="aurora-lights"></div>
         </div>
 
+        <!-- Crimson Theme Background -->
+        <div class="crimson-container" id="crimsonContainer"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; pointer-events: none; transition: opacity 0.5s ease;">
+            <svg id="gradientSvg" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="fullRedGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <!-- Vermelho puro do topo até o meio (50%) -->
+                        <stop offset="0%" style="stop-color:rgb(255,0,0); stop-opacity:1"></stop>
+                        <stop offset="50%" style="stop-color:rgb(255,0,0); stop-opacity:1"></stop>
+
+                        <!-- Do meio para baixo, ele escurece até o vermelho escuro -->
+                        <stop offset="100%" style="stop-color:rgb(60,0,0); stop-opacity:1"></stop>
+                    </linearGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#fullRedGradient)"></rect>
+            </svg>
+        </div>
+
         <!-- ChatGPT Style Sidebar - Always Open -->
         <div class="chatgpt-sidebar open" id="chatgptSidebar">
 
@@ -385,6 +404,15 @@
                                     <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
                                 </svg>
                                 <span>Temas</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="mcp">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                                </svg>
+                                <span>Servidores MCP</span>
                             </button>
                             <button class="settings-nav-item" data-section="about">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1315,6 +1343,73 @@
                                         </div>
                                     </label>
                                 </div>
+
+                                <div class="theme-card" data-theme="crimson">
+                                    <label class="theme-radio">
+                                        <input type="radio" name="appTheme" value="crimson">
+                                        <div class="theme-card-content">
+                                            <div class="theme-preview crimson-preview">
+                                                <div class="preview-bg"
+                                                    style="background: linear-gradient(180deg, #ff0000 50%, #3c0000 100%);">
+                                                </div>
+                                                <div class="preview-ui"></div>
+                                            </div>
+                                            <div class="theme-info">
+                                                <span class="theme-name">Inferno Carmim</span>
+                                                <span class="theme-description">Gradiente vermelho intenso e
+                                                    sangrento</span>
+                                            </div>
+                                            <div class="theme-status">
+                                                <div class="status-indicator"></div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MCP Section -->
+                        <div class="settings-section" id="section-mcp">
+                            <div class="panel-header">
+                                <h3>Servidores MCP</h3>
+                                <p class="panel-description">Gerencie as ferramentas e integrações de sistema da sua IA
+                                </p>
+                            </div>
+
+                            <div class="mcp-content">
+                                <div class="info-card">
+                                    <div class="info-icon">🔌</div>
+                                    <div class="info-content">
+                                        <h4>O que é MCP?</h4>
+                                        <p>Model Context Protocol (MCP) permite que sua IA comunique e interaja
+                                            localmente com o seu computador usando servidores de ferramentas que você
+                                            instalar.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mcp-servers-list" id="mcpServersList">
+                                    <p>Carregando servidores...</p>
+                                </div>
+                                <div class="form-group" style="margin-top:20px;">
+                                    <label class="config-label">Adicionar Novo Servidor MCP</label>
+                                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                                        <input type="text" id="mcpServerName" class="api-input"
+                                            placeholder="Nome do Servidor (ex: bash, everything, github)">
+                                        <input type="text" id="mcpServerCommand" class="api-input"
+                                            placeholder="Comando (ex: npx, node, python)">
+                                        <input type="text" id="mcpServerArgs" class="api-input"
+                                            placeholder="Argumentos (separe por vírgula, ex: -y,@modelcontextprotocol/server-postgres)">
+                                        <button type="button" class="test-api-btn" id="addMcpServerBtn"
+                                            style="margin-top: 10px;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
+                                            Adicionar Servidor
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1341,67 +1436,15 @@
                                         <h2 class="app-name-title">OpenChat</h2>
                                         <div class="version-badge-container">
                                             <span class="version-badge">v2.1.3</span>
-                                            <span class="build-tag">Official Build</span>
+                                            <span class="build-tag">By Junior_7i</span>
                                         </div>
-                                        <p class="app-slogan">Sua interface definitiva para IA.</p>
+                                        <p class="app-slogan">OpenChat é o espaço onde você pode dizer o que outras IAs
+                                            simplesmente não permitem</p>
                                     </div>
                                 </div>
 
-                                <!-- System & Details Grid -->
-                                <div class="info-details-grid">
-                                    <div class="detail-item">
-                                        <span class="detail-label">Desenvolvido por</span>
-                                        <span class="detail-value">Junior_7i</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span class="detail-label">Plataforma</span>
-                                        <span class="detail-value" id="about-platform">Sistemas</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span class="detail-label">Electron</span>
-                                        <span class="detail-value" id="about-electron">Carregando...</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span class="detail-label">Licença</span>
-                                        <span class="detail-value">MIT License</span>
-                                    </div>
-                                </div>
 
-                                <!-- Mission/About Text -->
-                                <div class="about-mission-section">
-                                    <h5>Nossa Missão</h5>
-                                    <p>O OpenChat foi criado para oferecer uma experiência de IA poderosa, privada e
-                                        personalizável. Nosso objetivo é democratizar o acesso aos modelos mais
-                                        avançados do mundo através de uma interface moderna e intuitiva.</p>
-                                </div>
 
-                                <!-- Version Highlights (Revamped) -->
-                                <div class="changelog-preview">
-                                    <div class="changelog-header">
-                                        <h5>Novidades da v2.1.3</h5>
-                                        <button class="text-link-btn"
-                                            onclick="openExternalLink('https://github.com/antojunimaia-ui/openchat/releases')">Ver
-                                            changelog completo →</button>
-                                    </div>
-                                    <div class="changelog-items">
-                                        <div class="changelog-item">
-                                            <span class="item-icon">🚀</span>
-                                            <div class="item-text">
-                                                <strong>Otimização de Performance</strong>
-                                                <p>Redução no tempo de resposta e melhorias na renderização de mensagens
-                                                    longas.</p>
-                                            </div>
-                                        </div>
-                                        <div class="changelog-item">
-                                            <span class="item-icon">🎨</span>
-                                            <div class="item-text">
-                                                <strong>Redesign de Interface</strong>
-                                                <p>Otimização das configurações e menu "Sobre" revitalizado para melhor
-                                                    experiência.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
                                 <!-- Social/Link Buttons -->
                                 <div class="about-actions">

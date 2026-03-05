@@ -73,6 +73,7 @@ class OpenChat {
             this.loadSettings();
             this.setupEventListeners();
             this.setupStreamingListener();
+            this.setupUpdaterListener();
             this.loadChatList();
             this.loadMessages();
             this.setupAutoSave();
@@ -112,6 +113,16 @@ class OpenChat {
         } catch (error) {
             console.error('Erro ao carregar system prompt:', error);
             this.settings.systemPrompt = 'Você é um assistente útil e amigável. Responda de forma clara e concisa, sempre tentando ser prestativo e educativo.';
+        }
+    }
+
+    setupUpdaterListener() {
+        if (window.electronAPI && window.electronAPI.onUpdaterMessage) {
+            window.electronAPI.onUpdaterMessage((event, data) => {
+                if (data && data.message) {
+                    this.showNotification(data.message);
+                }
+            });
         }
     }
 
@@ -2424,6 +2435,14 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             });
         }
 
+        // MCP Server logic
+        const addMcpServerBtn = document.getElementById('addMcpServerBtn');
+        if (addMcpServerBtn) {
+            addMcpServerBtn.addEventListener('click', () => {
+                this.addMcpServer();
+            });
+        }
+
         // Model selection
         document.getElementById('selectGemini').addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -2561,6 +2580,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
         if (sectionId === 'about') {
             this.loadAboutSection();
         }
+
+        // Load MCP info if mcp section is selected
+        if (sectionId === 'mcp') {
+            this.loadMcpServers();
+        }
     }
 
     loadAboutSection() {
@@ -2585,6 +2609,117 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             } catch (e) {
                 electronElement.textContent = 'v28.0.0'; // Fallback
             }
+        }
+    }
+
+    async loadMcpServers() {
+        const mcpList = document.getElementById('mcpServersList');
+        if (!mcpList) return;
+        mcpList.innerHTML = '<p>Carregando servidores...</p>';
+        try {
+            if (window.electronAPI && window.electronAPI.getMcpServers) {
+                const response = await window.electronAPI.getMcpServers();
+                if (response.success) {
+                    this.mcpServersConfig = response.servers || {};
+                    this.renderMcpServers();
+                } else {
+                    mcpList.innerHTML = `<p style="color:var(--error-color)">Erro ao carregar: ${response.error}</p>`;
+                }
+            }
+        } catch (e) {
+            mcpList.innerHTML = `<p style="color:var(--error-color)">Erro: ${e.message}</p>`;
+        }
+    }
+
+    renderMcpServers() {
+        const mcpList = document.getElementById('mcpServersList');
+        if (!mcpList) return;
+        mcpList.innerHTML = '';
+        if (!this.mcpServersConfig || Object.keys(this.mcpServersConfig).length === 0) {
+            mcpList.innerHTML = '<p style="color: var(--text-color-light);">Nenhum servidor MCP configurado no momento.</p>';
+            return;
+        }
+
+        for (const [name, config] of Object.entries(this.mcpServersConfig)) {
+            const serverElement = document.createElement('div');
+            serverElement.style.border = '1px solid var(--border-color)';
+            serverElement.style.borderRadius = '8px';
+            serverElement.style.padding = '10px';
+            serverElement.style.marginBottom = '10px';
+            serverElement.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h4 style="margin:0;">${name}</h4>
+                        <p style="margin:5px 0 0; font-size:12px; color:var(--text-color-light);">${config.command} ${config.args ? config.args.join(' ') : ''}</p>
+                    </div>
+                    <button class="delete-mcp-btn" style="background:none; border:none; color:var(--error-color); cursor:pointer;" data-name="${name}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            `;
+            const deleteBtn = serverElement.querySelector('.delete-mcp-btn');
+            deleteBtn.addEventListener('click', async () => {
+                delete this.mcpServersConfig[name];
+                await this.saveMcpServers();
+                this.renderMcpServers();
+            });
+            mcpList.appendChild(serverElement);
+        }
+    }
+
+    async addMcpServer() {
+        const nameInput = document.getElementById('mcpServerName');
+        const cmdInput = document.getElementById('mcpServerCommand');
+        const argsInput = document.getElementById('mcpServerArgs');
+
+        let name = nameInput.value.trim();
+        let cmd = cmdInput.value.trim();
+        let args = argsInput.value.trim().split(',').map(a => a.trim()).filter(a => a);
+
+        if (!name || !cmd) {
+            this.showNotification('Nome e Comando são obrigatórios para um servidor MCP.');
+            return;
+        }
+
+        if (!this.mcpServersConfig) this.mcpServersConfig = {};
+        this.mcpServersConfig[name] = { command: cmd, args: args };
+
+        const success = await this.saveMcpServers();
+        if (success) {
+            nameInput.value = '';
+            cmdInput.value = '';
+            argsInput.value = '';
+            this.renderMcpServers();
+            this.showNotification('Servidor MCP ' + name + ' adicionado com sucesso!');
+        }
+    }
+
+    async saveMcpServers() {
+        try {
+            const addBtn = document.getElementById('addMcpServerBtn');
+            const originalText = addBtn ? addBtn.innerHTML : '';
+            if (addBtn) {
+                addBtn.innerHTML = 'Salvando...';
+                addBtn.disabled = true;
+            }
+
+            if (window.electronAPI && window.electronAPI.saveMcpServers) {
+                const result = await window.electronAPI.saveMcpServers(this.mcpServersConfig);
+
+                if (addBtn) {
+                    addBtn.innerHTML = originalText;
+                    addBtn.disabled = false;
+                }
+
+                if (!result.success) {
+                    this.showNotification('Erro ao salvar servidor MCP: ' + result.error);
+                    return false;
+                }
+                return true;
+            }
+        } catch (e) {
+            this.showNotification('Falha ao comunicar com backend: ' + e.message);
+            return false;
         }
     }
 
@@ -3208,8 +3343,11 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
             theme: document.querySelector('input[name="appTheme"]:checked')?.value || 'default'
         };
 
-        // Save to settings
-        this.settings = newSettings;
+        // Save to settings (preserve fields not managed by the form)
+        this.settings = {
+            ...newSettings,
+            pinnedChats: this.settings.pinnedChats || []
+        };
 
         // Save to localStorage
         localStorage.setItem('openchat-settings', JSON.stringify(this.settings));
@@ -3272,6 +3410,10 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
                 // Ensure theme settings exist
                 if (!parsedSettings.theme) {
                     parsedSettings.theme = this.settings.theme || 'default';
+                }
+                // Ensure pinnedChats exists (backward compatibility)
+                if (!parsedSettings.pinnedChats) {
+                    parsedSettings.pinnedChats = this.settings.pinnedChats || [];
                 }
                 this.settings = { ...this.settings, ...parsedSettings };
 
@@ -3523,13 +3665,13 @@ Responda de forma natural, como se fosse sua primeira interação com a pergunta
     // Terms of Use Management
     checkTermsOfUse() {
         // TEMPORÁRIO: Sempre mostrar o modal para testes
-        this.showTermsModal();
+        // this.showTermsModal();
 
-        /* const termsAccepted = localStorage.getItem('openchat-terms-accepted');
-        
+        const termsAccepted = localStorage.getItem('openchat-terms-accepted');
+
         if (!termsAccepted) {
             this.showTermsModal();
-        } */
+        }
     }
 
     showTermsModal() {
@@ -4165,10 +4307,12 @@ Linhas: ${lineCount.toLocaleString('pt-BR')}
     applyTheme(themeName) {
         const starryContainer = document.getElementById('starrySkyContainer');
         const auroraContainer = document.getElementById('auroraContainer');
+        const crimsonContainer = document.getElementById('crimsonContainer');
 
         // Reset all specific theme containers
         if (starryContainer) starryContainer.style.display = 'none';
         if (auroraContainer) auroraContainer.style.display = 'none';
+        if (crimsonContainer) crimsonContainer.style.display = 'none';
 
         if (themeName === 'starry-sky') {
             if (starryContainer) {
@@ -4178,6 +4322,10 @@ Linhas: ${lineCount.toLocaleString('pt-BR')}
         } else if (themeName === 'aurora') {
             if (auroraContainer) {
                 auroraContainer.style.display = 'block';
+            }
+        } else if (themeName === 'crimson') {
+            if (crimsonContainer) {
+                crimsonContainer.style.display = 'block';
             }
         }
     }
