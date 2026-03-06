@@ -8,6 +8,8 @@ const mcpManager = require('./mcp_manager');
 const setupWindowHandlers = require('./src/main/ipc/windowHandlers');
 const setupChatHandlers = require('./src/main/ipc/chatHandlers');
 const setupMemoryHandlers = require('./src/main/ipc/memoryHandlers');
+const { setupFileHandlers } = require('./src/main/ipc/fileHandlers');
+const { setupImageHandlers } = require('./src/main/ipc/imageHandlers');
 
 const { webSearch, webScrape } = require('./src/main/services/webScraper');
 const { callGeminiAPI, callMistralAPI, callZaiAPI, callOpenRouterAPI } = require('./src/main/services/aiProviders');
@@ -53,10 +55,13 @@ app.whenReady().then(() => {
 
   createWindow();
 
+  // Set up modular IPC handlers
   // Initialize handlers extracted to separate files
   setupWindowHandlers(ipcMain, () => mainWindow);
   setupChatHandlers(ipcMain);
   setupMemoryHandlers(ipcMain);
+  setupFileHandlers();
+  setupImageHandlers();
 
   // Inicializar auto-updater
   autoUpdater.checkForUpdatesAndNotify().catch(err => console.error('Erro no auto-updater:', err));
@@ -213,534 +218,286 @@ async function loadMemories() {
 
 
 
-// Função para processar Function Calls na resposta da IA
-async function processFunctionCalls(responseText, event) {
-  console.log('=== PROCESSANDO FUNCTION CALLS ===');
-  // Normalizar resposta (remover ```json ... ``` se a IA colocou as tags dentro)
-  let responseToProcess = responseText
-    .replace(/```json\s*\[FUNCTION_CALL\]/gi, '[FUNCTION_CALL]')
-    .replace(/\[\/FUNCTION_CALL\]\s*```/gi, '[/FUNCTION_CALL]');
+// ─── Executar uma tool call individual ──────────────────────────────────────
+async function executeTool(toolCall, event) {
+  const { name, arguments: args } = toolCall;
+  console.log(`[Tool] Executando: ${name}`, args);
 
-  // Verificar se contém [FUNCTION_CALL]
-  const hasFC = responseToProcess.includes('[FUNCTION_CALL]');
-  console.log('Contém [FUNCTION_CALL]?', hasFC);
-
-  if (hasFC) {
-    const startIndex = responseToProcess.indexOf('[FUNCTION_CALL]');
-    const endIndex = responseToProcess.indexOf('[/FUNCTION_CALL]');
-    console.log('Índice início:', startIndex);
-    console.log('Índice fim:', endIndex);
-    if (startIndex >= 0 && endIndex >= 0) {
-      console.log('Conteúdo entre tags:', responseToProcess.substring(startIndex, endIndex + 16));
+  if (name === 'save_memory') {
+    const os = require('os');
+    const memoriesDir = path.join(os.homedir(), '.openchat', 'memories');
+    if (!require('fs').existsSync(memoriesDir)) require('fs').mkdirSync(memoriesDir, { recursive: true });
+    const memoriesFile = path.join(memoriesDir, 'memories.json');
+    let memories = [];
+    if (require('fs').existsSync(memoriesFile)) {
+      memories = JSON.parse(await fs.readFile(memoriesFile, 'utf8'));
     }
+    const newMemory = {
+      id: 'mem-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      content: args.content,
+      category: args.category || 'general',
+      importance: args.importance || 'medium',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    memories.push(newMemory);
+    await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
+    console.log('[Tool] Memória salva:', newMemory.id);
+    return { success: true, memory: newMemory };
   }
 
-  // Regex mais robusta que captura function calls em qualquer formato
-  const functionCallRegex = /\[FUNCTION_CALL\]\s*([\s\S]*?)\s*\[\/FUNCTION_CALL\]/gi;
-  const calls = [];
-
-  // Usar a versão normalizada para o texto final também, 
-  // e limpar artefatos de markdown que a IA às vezes joga no início ou ao redor das chamadas
-  let processedText = responseToProcess
-    .replace(/^[\s\n\r*#_~>|-]+/, '') // Limpa lixo de formatação no início extremo
-    .replace(/\*{3,}/g, '')           // Remove sequências de 3 ou mais asteriscos (****)
-    .trim();
-
-  // Encontrar todas as matches primeiro
-  const matches = [];
-  let match;
-
-  // Reset regex
-  functionCallRegex.lastIndex = 0;
-
-  while ((match = functionCallRegex.exec(responseToProcess)) !== null) {
-    matches.push({
-      fullMatch: match[0],
-      jsonContent: match[1].trim(),
-      index: match.index
-    });
-  }
-
-  console.log(`Encontradas ${matches.length} function calls na resposta`);
-
-  // Se não encontrou com regex mas tem o texto, tentar manualmente
-  if (matches.length === 0 && hasFC) {
-    console.log('ATENÇÃO: Texto contém [FUNCTION_CALL] mas regex não encontrou!');
-    console.log('Tentando extração manual...');
-
-    const startTag = '[FUNCTION_CALL]';
-    const endTag = '[/FUNCTION_CALL]';
-    let startIndex = responseToProcess.indexOf(startTag);
-
-    while (startIndex !== -1) {
-      const endIndex = responseToProcess.indexOf(endTag, startIndex);
-      if (endIndex !== -1) {
-        const fullMatch = responseToProcess.substring(startIndex, endIndex + endTag.length);
-        const jsonContent = responseToProcess.substring(startIndex + startTag.length, endIndex).trim();
-
-        matches.push({
-          fullMatch: fullMatch,
-          jsonContent: jsonContent,
-          index: startIndex
-        });
-
-        console.log('Match manual encontrado:', { fullMatch: fullMatch.substring(0, 100), jsonContent: jsonContent.substring(0, 100) });
-
-        startIndex = responseToProcess.indexOf(startTag, endIndex);
-      } else {
-        break;
-      }
-    }
-
-    console.log(`Extração manual encontrou ${matches.length} function calls`);
-  }
-
-  // Processar cada match (em ordem reversa para não afetar os índices)
-  for (let i = matches.length - 1; i >= 0; i--) {
-    const matchData = matches[i];
-    try {
-      // Limpar artefatos de Markdown (asteriscos, crases, etc) que a IA pode ter colocado
-      const cleanJsonContent = matchData.jsonContent
-        .replace(/^\*+/, '')
-        .replace(/\*+$/, '')
-        .replace(/^`+json/, '')
-        .replace(/^`+/, '')
-        .replace(/`+$/, '')
-        .trim();
-
-      const functionData = JSON.parse(cleanJsonContent);
-      const functionName = functionData.function;
-      const args = functionData.arguments;
-
-      console.log('Function call detectada:', functionName, args);
-
-      let result;
-      if (functionName === 'save_memory') {
-        const os = require('os');
-        const memoriesDir = path.join(os.homedir(), '.openchat', 'memories');
-
-        if (!require('fs').existsSync(memoriesDir)) {
-          require('fs').mkdirSync(memoriesDir, { recursive: true });
-        }
-
-        const memoriesFile = path.join(memoriesDir, 'memories.json');
-        let memories = [];
-
-        if (require('fs').existsSync(memoriesFile)) {
-          const data = await fs.readFile(memoriesFile, 'utf8');
-          memories = JSON.parse(data);
-        }
-
-        const newMemory = {
-          id: 'mem-' + Date.now() + '-' + i,
-          content: args.content,
-          category: args.category || 'general',
-          importance: args.importance || 'medium',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-
-        memories.push(newMemory);
+  if (name === 'update_memory') {
+    const os = require('os');
+    const memoriesFile = path.join(os.homedir(), '.openchat', 'memories', 'memories.json');
+    if (require('fs').existsSync(memoriesFile)) {
+      const memories = JSON.parse(await fs.readFile(memoriesFile, 'utf8'));
+      const idx = memories.findIndex(m => m.id === args.memory_id);
+      if (idx !== -1) {
+        memories[idx].content = args.new_content;
+        memories[idx].updatedAt = new Date().toISOString();
         await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
-
-        result = { success: true, memory: newMemory };
-        console.log('Memória salva com sucesso:', newMemory.id);
-      } else if (functionName === 'update_memory') {
-        const os = require('os');
-        const memoriesFile = path.join(os.homedir(), '.openchat', 'memories', 'memories.json');
-
-        if (require('fs').existsSync(memoriesFile)) {
-          const data = await fs.readFile(memoriesFile, 'utf8');
-          let memories = JSON.parse(data);
-
-          const memoryIndex = memories.findIndex(m => m.id === args.memory_id);
-          if (memoryIndex !== -1) {
-            memories[memoryIndex].content = args.new_content;
-            memories[memoryIndex].updatedAt = new Date().toISOString();
-
-            await fs.writeFile(memoriesFile, JSON.stringify(memories, null, 2), 'utf8');
-            result = { success: true, memory: memories[memoryIndex] };
-            console.log('Memória atualizada com sucesso:', args.memory_id);
-          } else {
-            result = { success: false, error: 'Memória não encontrada' };
-          }
-        }
-      } else if (functionName === 'get_architect_document') {
-        // Solicitar documento do renderer process
-        try {
-          const document = await event.sender.executeJavaScript('window.openchat.getArchitectDocument()');
-          result = document;
-          console.log('📄 Documento do Arquiteto lido. Tamanho:', document.document?.length || 0);
-          console.log('📄 Primeiros 100 chars:', document.document?.substring(0, 100) || '(vazio)');
-        } catch (error) {
-          console.error('❌ Erro ao ler documento do Arquiteto:', error);
-          result = { success: false, error: 'Erro ao ler documento' };
-        }
-      } else if (functionName === 'update_architect_document') {
-        // Atualizar documento no renderer process
-        try {
-          const newContent = args.new_content;
-          const updateResult = await event.sender.executeJavaScript(
-            `window.openchat.updateArchitectDocument(${JSON.stringify(newContent)})`
-          );
-          result = updateResult;
-          console.log('Documento do Arquiteto atualizado com sucesso');
-        } catch (error) {
-          console.error('Erro ao atualizar documento do Arquiteto:', error);
-          result = { success: false, error: 'Erro ao atualizar documento' };
-        }
-      } else if (functionName === 'web_search') {
-        result = await webSearch(args.query);
-      } else if (functionName === 'web_scrape') {
-        result = await webScrape(args.url);
-      } else {
-        // Tentar ver se é uma ferramenta do MCP
-        const mcpResult = await mcpManager.handleToolCall(functionName, args);
-        if (mcpResult) {
-          result = mcpResult;
-        } else {
-          result = { success: false, error: "Ferramenta desconhecida ou indisponível" };
-        }
+        return { success: true, memory: memories[idx] };
       }
+      return { success: false, error: 'Memória não encontrada' };
+    }
+    return { success: false, error: 'Arquivo de memórias não encontrado' };
+  }
 
-      calls.unshift({ // unshift porque estamos processando de trás pra frente
-        function: functionName,
-        arguments: args,
-        result: result
-      });
-
-      // Add visual indicator for architect functions
-      let indicator = '';
-      if (functionName === 'get_architect_document') {
-        indicator = '<div class="function-indicator reading-document"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg><span>Lendo documento</span></div>';
-      } else if (functionName === 'update_architect_document') {
-        indicator = '<div class="function-indicator writing-document"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Escrevendo documento</span></div>';
-      } else if (functionName === 'web_search') {
-        indicator = '<div class="function-indicator web-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>Buscando na web...</span></div>';
-      } else if (functionName === 'web_scrape') {
-        indicator = '<div class="function-indicator web-scrape"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"></path><path d="M16 5V3"></path><path d="M8 5V3"></path><path d="M3 9h18"></path><path d="M21 12H3"></path><path d="M22 22l-4-4"></path><path d="M18 22l4-4"></path></svg><span>Lendo página...</span></div>';
-      } else {
-        // Indicador genérico e fallback para MCP tools
-        const genericName = functionName.replace(/_/g, ' ');
-        indicator = `<div class="function-indicator"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Executando ${genericName}...</span></div>`;
-      }
-
-      // Remover a chamada de função do texto processado e adicionar indicador
-      const before = processedText.substring(0, matchData.index);
-      const after = processedText.substring(matchData.index + matchData.fullMatch.length);
-      processedText = before + indicator + after;
-
-      console.log('Function call removida do texto e indicador adicionado');
-
-    } catch (error) {
-      console.error('Erro ao processar function call:', error);
-      console.error('JSON que causou erro:', matchData.jsonContent);
-      // Mesmo com erro, remover o bloco de function call
-      const before = processedText.substring(0, matchData.index);
-      const after = processedText.substring(matchData.index + matchData.fullMatch.length);
-      processedText = before + after;
+  if (name === 'get_architect_document') {
+    try {
+      const doc = await event.sender.executeJavaScript('window.openchat.getArchitectDocument()');
+      console.log('[Tool] Documento lido. Tamanho:', doc?.document?.length ?? 0);
+      return doc;
+    } catch (err) {
+      return { success: false, error: 'Erro ao ler documento: ' + err.message };
     }
   }
 
-  // Limpar espaços extras e linhas vazias
-  processedText = processedText
-    .replace(/\n\n\n+/g, '\n\n') // Múltiplas linhas vazias -> 2 linhas
-    .replace(/^\s+|\s+$/g, '') // Trim
-    .trim();
+  if (name === 'update_architect_document') {
+    try {
+      const result = await event.sender.executeJavaScript(
+        `window.openchat.updateArchitectDocument(${JSON.stringify(args.new_content)})`
+      );
+      return result;
+    } catch (err) {
+      return { success: false, error: 'Erro ao atualizar documento: ' + err.message };
+    }
+  }
 
-  console.log('Texto final processado (primeiros 200 chars):', processedText.substring(0, 200));
-  console.log('=== FIM DO PROCESSAMENTO ===');
+  if (name === 'web_search') return await webSearch(args.query);
+  if (name === 'web_scrape') return await webScrape(args.url);
 
-  return {
-    text: processedText,
-    calls: calls
+  // MCP fallback
+  const mcpResult = await mcpManager.handleToolCall(name, args);
+  if (mcpResult) return mcpResult;
+
+  return { success: false, error: 'Ferramenta desconhecida: ' + name };
+}
+
+// ─── Indicador visual de tool call ───────────────────────────────────────────
+function buildToolIndicator(name) {
+  const icons = {
+    get_architect_document: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+    update_architect_document: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+    web_search: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+    web_scrape: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"></path><path d="M3 9h18"></path></svg>'
   };
+  const labels = {
+    get_architect_document: 'Lendo documento',
+    update_architect_document: 'Escrevendo documento',
+    web_search: 'Buscando na web...',
+    web_scrape: 'Lendo página...'
+  };
+  const icon = icons[name] || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
+  const label = labels[name] || ('Executando ' + name.replace(/_/g, ' ') + '...');
+  const cls = name === 'get_architect_document' ? 'reading-document'
+    : name === 'update_architect_document' ? 'writing-document'
+      : name;
+  return `<div class="function-indicator ${cls}">${icon}<span>${label}</span></div>`;
 }
 
 // IPC handlers para comunicação com o renderer
 ipcMain.handle('send-message', async (event, messageData) => {
-  console.log('Mensagem recebida:', messageData);
+  console.log('Mensagem recebida:', messageData?.text?.substring(0, 80));
 
   try {
     // ===== FILTRO DE CONTEÚDO =====
-    // Verificar mensagem do usuário antes de processar
     if (contentFilter) {
       const filterResult = contentFilter.analyze(messageData.text);
-
       if (!filterResult.allowed) {
         console.log('🔒 Mensagem bloqueada:', filterResult.reason);
-        return {
-          success: false,
-          error: 'Sua mensagem foi bloqueada por violar as políticas de uso.',
-          blocked: true,
-          reason: filterResult.reason,
-          threat_level: filterResult.threat_level
-        };
+        return { success: false, error: 'Sua mensagem foi bloqueada por violar as políticas de uso.', blocked: true, reason: filterResult.reason, threat_level: filterResult.threat_level };
       }
     }
 
-    // Carregar system prompt diretamente do arquivo
     const systemPrompt = await loadSystemPrompt();
-    console.log('System prompt carregado no main.js. Tamanho:', systemPrompt.length, 'caracteres');
 
-    // Carregar memórias
+    // ─── Memórias ──────────────────────────────────────────────────────
     const memoriesResult = await loadMemories();
     let memoriesPrompt = '';
     if (memoriesResult.success && memoriesResult.memories.length > 0) {
       memoriesPrompt = '\n\n=== CONTEXTO PESSOAL (USO INTERNO) ===\n';
-      memoriesPrompt += 'Informações contextuais sobre o usuário (use APENAS quando relevante para a conversa atual):\n\n';
-      memoriesResult.memories.forEach((mem, index) => {
-        memoriesPrompt += `${index + 1}. [${mem.category}] ${mem.content}\n`;
+      memoriesPrompt += 'Informações contextuais sobre o usuário (use APENAS quando relevante):\n\n';
+      memoriesResult.memories.forEach((mem, i) => {
+        memoriesPrompt += `${i + 1}. [${mem.category}] ${mem.content}\n`;
       });
-      memoriesPrompt += '\n⚠️ REGRAS CRÍTICAS:\n';
-      memoriesPrompt += '- NUNCA mencione que você tem essas informações\n';
-      memoriesPrompt += '- NUNCA traga essas informações sem contexto relevante\n';
-      memoriesPrompt += '- Use APENAS se o usuário mencionar o tópico OU se for diretamente relevante\n';
-      memoriesPrompt += '- Exemplo ERRADO: "Oi! Lembro que você gosta de pizza" (sem contexto)\n';
-      memoriesPrompt += '- Exemplo CORRETO: Usuário: "O que eu deveria pedir pra jantar?" → Você: "Que tal pizza? Sempre uma boa opção"\n';
-      memoriesPrompt += '- Se o usuário apenas cumprimentar, responda normalmente SEM mencionar memórias\n';
+      memoriesPrompt += '\n⚠️ Use memórias SOMENTE quando o tópico surgir naturalmente na conversa.\n';
       memoriesPrompt += '=== FIM DO CONTEXTO ===\n';
     }
 
-    // Buscar configurações do localStorage via renderer
     const settings = await getSettingsFromRenderer(event);
-
-    if (!settings || !settings.apis) {
-      return {
-        success: false,
-        error: 'Configurações de API não encontradas. Configure uma API nas configurações.'
-      };
-    }
+    if (!settings?.apis) return { success: false, error: 'Configurações de API não encontradas. Configure uma API nas configurações.' };
 
     const activeModel = settings.activeModel || 'gemini';
     const apiConfig = settings.apis[activeModel];
-
-    if (!apiConfig || !apiConfig.enabled || !apiConfig.apiKey) {
-      return {
-        success: false,
-        error: `API ${activeModel} não configurada. Verifique as configurações.`
-      };
+    if (!apiConfig?.enabled || !apiConfig?.apiKey) {
+      return { success: false, error: `API ${activeModel} não configurada. Verifique as configurações.` };
     }
 
-    // Combinar system prompt com memórias e personalidade
+    // ─── System Prompt final ────────────────────────────────────────────
     let finalSystemPrompt = systemPrompt + memoriesPrompt;
     if (messageData.personalityPrompt) {
       finalSystemPrompt += '\n\nINSTRUÇÕES DE PERSONALIDADE:\n' + messageData.personalityPrompt;
     }
 
-    // Adicionar instruções de Function Calling para memórias
-    finalSystemPrompt += '\n\n=== SISTEMA DE MEMÓRIA SILENCIOSO ===\n';
-    finalSystemPrompt += 'Você tem um sistema de memória. Use as funções abaixo SILENCIOSAMENTE:\n\n';
-    finalSystemPrompt += '1. save_memory(content, category, importance): Salva memória\n';
-    finalSystemPrompt += '   - content: Conteúdo da memória\n';
-    finalSystemPrompt += '   - category: user_info, preferences, facts, important_events, general\n';
-    finalSystemPrompt += '   - importance: low, medium, high\n\n';
-    finalSystemPrompt += '2. update_memory(memory_id, new_content): Atualiza memória\n\n';
-    finalSystemPrompt += 'QUANDO SALVAR (silenciosamente):\n';
-    finalSystemPrompt += '- Informações pessoais importantes do usuário\n';
-    finalSystemPrompt += '- Preferências claras expressadas\n';
-    finalSystemPrompt += '- Quando usuário pedir explicitamente para lembrar\n';
-    finalSystemPrompt += '- Fatos importantes para contexto futuro\n\n';
-    finalSystemPrompt += 'FORMATO (coloque ANTES da sua resposta):\n';
-    finalSystemPrompt += '[FUNCTION_CALL]\n';
-    finalSystemPrompt += '{"function": "save_memory", "arguments": {"content": "texto", "category": "preferences", "importance": "medium"}}\n';
-    finalSystemPrompt += '[/FUNCTION_CALL]\n\n';
-    finalSystemPrompt += '⚠️ REGRAS ABSOLUTAS:\n';
-    finalSystemPrompt += '- NUNCA diga "vou lembrar", "salvei", "anotei", "guardei" ou similar\n';
-    finalSystemPrompt += '- NUNCA mencione o sistema de memória\n';
-    finalSystemPrompt += '- NUNCA traga memórias sem contexto relevante na conversa\n';
-    finalSystemPrompt += '- Use memórias APENAS quando o usuário mencionar o tópico OU for diretamente relevante\n';
-    finalSystemPrompt += '- NUNCA mencione sobre as memorias que voce tem, nao faça referencias, e nem comente sobre, use APENAS quando necessario\n';
-    finalSystemPrompt += '- NUNCA em hipotese alguma salve coisas INUTEIS, nao polua sua memoria com coisas inuteis\n';
+    // Instruções compactas — o Tool Calling é nativo, não precisa de formato de texto
+    finalSystemPrompt += '\n\n=== SISTEMA DE MEMÓRIA ===\n';
+    finalSystemPrompt += 'Use save_memory/update_memory SILENCIOSAMENTE quando o usuário revelar informações importantes.\n';
+    finalSystemPrompt += 'NUNCA mencione que salvou algo. Use memórias SOMENTE quando o tópico for relevante.\n';
     finalSystemPrompt += '=== FIM ===\n';
 
-    // Adicionar instruções de Function Calling para Modo Arquiteto (se aplicável)
     if (messageData.isArchitectMode) {
-      finalSystemPrompt += '\n\n=== MODO ARQUITETO - COLABORAÇÃO EM DOCUMENTO ===\n';
-      finalSystemPrompt += 'Você está no Modo Arquiteto! O usuário está trabalhando em um documento (PRD, especificação, projeto, etc.).\n\n';
-
-      // Incluir o documento atual no contexto
+      finalSystemPrompt += '\n\n=== MODO ARQUITETO ===\n';
+      finalSystemPrompt += 'Você está colaborando em um documento com o usuário.\n';
       if (messageData.architectDocument) {
-        finalSystemPrompt += '📄 DOCUMENTO ATUAL:\n';
-        finalSystemPrompt += '```\n';
-        finalSystemPrompt += messageData.architectDocument;
-        finalSystemPrompt += '\n```\n\n';
+        finalSystemPrompt += '📄 Documento atual:\n```\n' + messageData.architectDocument + '\n```\n\n';
       }
-
-      finalSystemPrompt += 'FUNÇÕES DISPONÍVEIS:\n\n';
-      finalSystemPrompt += '1. get_architect_document(): Lê o documento atual completo\n';
-      finalSystemPrompt += '   - Use quando precisar ver o conteúdo atual do documento\n';
-      finalSystemPrompt += '   - ⚠️ IMPORTANTE: Após chamar esta função, PARE sua resposta imediatamente\n';
-      finalSystemPrompt += '   - O sistema vai injetar o documento no contexto e você continuará a resposta\n';
-      finalSystemPrompt += '   - Retorna: { success: true, document: "conteúdo completo" }\n\n';
-      finalSystemPrompt += '2. update_architect_document(new_content): Atualiza o documento completo\n';
-      finalSystemPrompt += '   - Use quando o usuário pedir para modificar, adicionar ou reorganizar o documento\n';
-      finalSystemPrompt += '   - new_content: O novo conteúdo COMPLETO do documento (não apenas a parte modificada)\n';
-      finalSystemPrompt += '   - Retorna: { success: true, message: "Documento atualizado" }\n\n';
-      finalSystemPrompt += 'COMO COLABORAR:\n';
-      finalSystemPrompt += '- Leia o documento quando necessário para entender o contexto\n';
-      finalSystemPrompt += '- Sugira melhorias, adições, reorganizações\n';
-      finalSystemPrompt += '- Quando o usuário concordar com mudanças, atualize o documento\n';
-      finalSystemPrompt += '- Seja proativo: identifique gaps, inconsistências, oportunidades de melhoria\n';
-      finalSystemPrompt += '- Faça perguntas para clarificar requisitos\n';
-      finalSystemPrompt += '- Ajude a estruturar ideias de forma clara e organizada\n\n';
-      finalSystemPrompt += 'FORMATO DAS CHAMADAS:\n';
-      finalSystemPrompt += '[FUNCTION_CALL]\n';
-      finalSystemPrompt += '{"function": "get_architect_document", "arguments": {}}\n';
-      finalSystemPrompt += '[/FUNCTION_CALL]\n';
-      finalSystemPrompt += '[PAUSE_RESPONSE] // PARE AQUI e aguarde o sistema injetar o documento\n\n';
-      finalSystemPrompt += 'ou\n\n';
-      finalSystemPrompt += '[FUNCTION_CALL]\n';
-      finalSystemPrompt += '{"function": "update_architect_document", "arguments": {"new_content": "conteúdo completo atualizado"}}\n';
-      finalSystemPrompt += '[/FUNCTION_CALL]\n\n';
-      finalSystemPrompt += '⚠️ REGRAS CRÍTICAS:\n';
-      finalSystemPrompt += '- Ao chamar get_architect_document(), PARE sua resposta imediatamente após [/FUNCTION_CALL]\n';
-      finalSystemPrompt += '- NÃO continue escrevendo após chamar get_architect_document()\n';
-      finalSystemPrompt += '- O sistema vai injetar o resultado e você continuará naturalmente\n';
-      finalSystemPrompt += '- Ao atualizar, envie o documento COMPLETO, não apenas a parte modificada\n';
-      finalSystemPrompt += '- Seja colaborativo e construtivo\n';
-      finalSystemPrompt += '- Explique suas sugestões e o raciocínio por trás delas\n';
+      finalSystemPrompt += 'Use get_architect_document() para ler o documento e update_architect_document() para atualizá-lo.\n';
+      finalSystemPrompt += 'Ao chamar get_architect_document(), PARE imediatamente e aguarde o resultado.\n';
       finalSystemPrompt += '=== FIM ===\n';
     }
 
-    // Adicionar instruções de Busca na Web
     finalSystemPrompt += '\n\n=== FERRAMENTAS DE PESQUISA WEB ===\n';
-    finalSystemPrompt += 'Você pode pesquisar na internet e ler o conteúdo de páginas web:\n\n';
-    finalSystemPrompt += '1. web_search(query): Pesquisa no Google/DuckDuckGo\n';
-    finalSystemPrompt += '   - Use para encontrar informações atuais, notícias ou links sobre um tema.\n';
-    finalSystemPrompt += '   - ⚠️ IMPORTANTE: Após chamar esta função, você DEVE PARAR sua resposta imediatamente.\n';
-    finalSystemPrompt += '2. web_scrape(url): Lê o conteúdo de texto de uma página específica\n';
-    finalSystemPrompt += '   - Use para ler o conteúdo de um link encontrado ou de uma URL fornecida.\n';
-    finalSystemPrompt += '   - ⚠️ IMPORTANTE: Após chamar esta função, você DEVE PARAR sua resposta imediatamente.\n\n';
-
-    // Adicionar ferramentas MCP instaladas, caso haja
-    finalSystemPrompt += mcpManager.getSystemPromptExtension();
-
-    finalSystemPrompt += 'FLUXO DE TRABALHO:\n';
-    finalSystemPrompt += '1. Se precisar de informações que não possui, use web_search.\n';
-    finalSystemPrompt += '2. Após os resultados da busca, ANALISE os links e snippets.\n';
-    finalSystemPrompt += '3. DECIDA se precisa ler algum link específico usando web_scrape para obter mais detalhes.\n';
-    finalSystemPrompt += '4. Se decidir não entrar em nenhum link, responda ao usuário com o que encontrou na pesquisa.\n';
-    finalSystemPrompt += '5. SEMPRE cite as fontes das informações encontradas.\n';
-    finalSystemPrompt += '6. Se o usuário fornecer uma informação ou correção (ex: uma data), use as ferramentas para VERIFICAR essa informação antes de discordar. Se a busca falhar, priorize a correção do usuário se ela parecer plausível.\n\n';
+    finalSystemPrompt += 'Use web_search() para buscar informações atuais e web_scrape() para ler páginas específicas.\n';
+    finalSystemPrompt += 'Após chamar qualquer uma dessas ferramentas, PARE e aguarde o resultado do sistema.\n';
     if (messageData.tool === 'searchWeb') {
-      finalSystemPrompt += '⚠️ INSTRUÇÃO CRÍTICA: O usuário ATIVOU a busca na web para esta mensagem. Você DEVE realizar uma pesquisa agora mesmo antes de responder.\n';
+      finalSystemPrompt += '⚠️ O usuário ATIVOU a busca na web — realize uma pesquisa AGORA MESMO antes de responder.\n';
     }
+    finalSystemPrompt += mcpManager.getSystemPromptExtension();
     finalSystemPrompt += '=== FIM ===\n';
 
-    // Fazer chamada para a API com contexto completo
-    let response;
-    if (activeModel === 'gemini') {
-      response = await callGeminiAPI(apiConfig, messageData, finalSystemPrompt, mainWindow);
-    } else if (activeModel === 'mistral') {
-      response = await callMistralAPI(apiConfig, messageData, finalSystemPrompt, mainWindow);
-    } else if (activeModel === 'zai') {
-      response = await callZaiAPI(apiConfig, messageData, finalSystemPrompt, mainWindow);
-    } else if (activeModel === 'openrouter') {
-      response = await callOpenRouterAPI(apiConfig, messageData, finalSystemPrompt, mainWindow);
-    }
+    // ─── Função interna para chamar o provider correto ──────────────────
+    const callProvider = (msgData) => {
+      if (activeModel === 'gemini') return callGeminiAPI(apiConfig, msgData, finalSystemPrompt, mainWindow);
+      if (activeModel === 'mistral') return callMistralAPI(apiConfig, msgData, finalSystemPrompt, mainWindow);
+      if (activeModel === 'zai') return callZaiAPI(apiConfig, msgData, finalSystemPrompt, mainWindow);
+      if (activeModel === 'openrouter') return callOpenRouterAPI(apiConfig, msgData, finalSystemPrompt, mainWindow);
+      throw new Error('Provider desconhecido: ' + activeModel);
+    };
 
-    // Loop para processar Function Calls e possíveis continuações (Pesquisa Web, Arquiteto, etc)
-    let currentProcessedResponse = await processFunctionCalls(response, event);
-    let finalResponseText = currentProcessedResponse.text;
-    let finalFunctionCalls = [...currentProcessedResponse.calls];
-    let iteration = 0;
-    const maxIterations = 5;
+    // ─── Primeira chamada ────────────────────────────────────────────────
+    let { text: responseText, toolCalls } = await callProvider(messageData);
+    const allFunctionCalls = [];
+    let finalResponseText = '';
 
-    // Histórico local desta rodada de ferramentas para manter o contexto entre iterações
-    let toolSessionMessages = [
-      { type: 'bot', text: response }
+    // Histórico da sessão de tool-calling (multi-turn)
+    // Mantém o contexto entre iterações para que o modelo saiba o que aconteceu
+    const toolTurnHistory = [
+      ...(messageData.conversationHistory || []),
+      { type: 'user', text: messageData.text }
     ];
 
-    while (iteration < maxIterations) {
-      const hasGetDocument = currentProcessedResponse.calls.some(call => call.function === 'get_architect_document');
-      const hasToolCallNeedsFeedback = currentProcessedResponse.calls.some(call =>
-        !['save_memory', 'update_memory', 'update_architect_document', 'get_architect_document'].includes(call.function)
-      );
+    const SILENT_TOOLS = new Set(['save_memory', 'update_memory', 'update_architect_document']);
+    const MAX_ITERATIONS = 6;
 
-      if (!((hasGetDocument && messageData.isArchitectMode) || hasToolCallNeedsFeedback)) {
+    for (let iter = 0; iter <= MAX_ITERATIONS; iter++) {
+      const hasTools = toolCalls?.length > 0;
+
+      // Acumular texto visível
+      if (responseText?.trim()) {
+        finalResponseText = finalResponseText
+          ? (finalResponseText.trim() + '\n\n' + responseText.trim())
+          : responseText.trim();
+      }
+
+      // Adicionar indicadores visuais das tools que precisam de feedback
+      if (hasTools) {
+        const visibleIndicators = toolCalls
+          .filter(tc => !SILENT_TOOLS.has(tc.name))
+          .map(tc => buildToolIndicator(tc.name))
+          .join('');
+        if (visibleIndicators) {
+          finalResponseText = (finalResponseText + visibleIndicators).trim();
+        }
+      }
+
+      // Sem tool calls? Encerra o loop
+      if (!hasTools) break;
+      if (iter === MAX_ITERATIONS) {
+        console.warn('[Tool Loop] Limite de iterações atingido.');
         break;
       }
 
-      console.log(`🏗️ Tool detectada (iteração ${iteration + 1}) - fazendo chamada de continuação`);
+      // ─── Executar todas as tool calls ───────────────────────────────
+      const toolResults = await Promise.all(
+        toolCalls.map(async tc => ({
+          toolCall: tc,
+          result: await executeTool(tc, event)
+        }))
+      );
 
-      let continuationText = '';
-      if (hasGetDocument) {
-        const documentCall = currentProcessedResponse.calls.find(call => call.function === 'get_architect_document');
-        const documentContent = documentCall.result?.document || '';
-        continuationText = documentContent && documentContent.trim()
-          ? `[SISTEMA] Documento lido com sucesso:\n\n${documentContent}\n\nAnalise e prossiga.`
-          : `[SISTEMA] O documento está vazio no momento.`;
-      } else {
-        const toolResults = currentProcessedResponse.calls
-          .filter(call => !['save_memory', 'update_memory', 'update_architect_document', 'get_architect_document'].includes(call.function))
-          .map(call => `Função: ${call.function}\nResultado: ${JSON.stringify(call.result || { error: 'Sem resultado' })}`)
-          .join('\n\n');
+      // Registrar no histórico das tool calls
+      toolResults.forEach(({ toolCall, result }) => {
+        allFunctionCalls.push({ function: toolCall.name, arguments: toolCall.arguments, result });
+      });
 
-        continuationText = `[SISTEMA] Resultados das ferramentas executadas:\n\n${toolResults}\n\nAnalise os resultados. Você pode usar mais ferramentas ou responder ao usuário baseando-se nas informações recebidas.`;
-      }
+      // Tools que não precisam de continuação da IA
+      const needsContinuation = toolCalls.some(tc => !SILENT_TOOLS.has(tc.name));
+      if (!needsContinuation) break;
 
-      // Atualizar o histórico para incluir o que aconteceu até aqui
-      const updatedHistory = [
-        ...(messageData.conversationHistory || []),
-        { type: 'user', text: messageData.text },
-        ...toolSessionMessages
+      // ─── Preparar mensagem de continuação ───────────────────────────
+      // Monta o histórico completo incluindo os resultados das tools
+      const historyWithTools = [
+        ...toolTurnHistory,
+        // Resposta da IA com as tool calls
+        { type: 'bot', text: responseText || '' },
+        // Resultados das tools como mensagem do sistema
+        ...toolResults
+          .filter(({ toolCall }) => !SILENT_TOOLS.has(toolCall.name))
+          .map(({ toolCall, result }) => ({
+            role: 'tool',
+            name: toolCall.name,
+            tool_call_id: toolCall.id,
+            content: typeof result === 'string' ? result : JSON.stringify(result)
+          }))
       ];
 
-      const continuationMessageData = {
+      console.log(`[Tool Loop] Continuação ${iter + 1}, ${toolResults.length} resultado(s) enviado(s) para a IA`);
+
+      const continuationMsg = {
         ...messageData,
-        text: continuationText,
+        text: '[SISTEMA] Resultados das ferramentas recebidos. Analise e responda ao usuário.',
+        conversationHistory: historyWithTools,
         tool: null,
         image: null,
-        conversationHistory: updatedHistory,
         isArchitectMode: false
       };
 
-      let nextResponse;
-      try {
-        if (activeModel === 'gemini') {
-          nextResponse = await callGeminiAPI(apiConfig, continuationMessageData, finalSystemPrompt, mainWindow);
-        } else if (activeModel === 'mistral') {
-          nextResponse = await callMistralAPI(apiConfig, continuationMessageData, finalSystemPrompt, mainWindow);
-        } else if (activeModel === 'zai') {
-          nextResponse = await callZaiAPI(apiConfig, continuationMessageData, finalSystemPrompt, mainWindow);
-        } else if (activeModel === 'openrouter') {
-          nextResponse = await callOpenRouterAPI(apiConfig, continuationMessageData, finalSystemPrompt, mainWindow);
-        }
-
-        // Adicionar o resultado do sistema e a nova resposta da IA ao histórico da sessão
-        toolSessionMessages.push({ type: 'user', text: continuationText });
-        toolSessionMessages.push({ type: 'bot', text: nextResponse });
-
-        currentProcessedResponse = await processFunctionCalls(nextResponse, event);
-
-        // Acumular texto (se houver texto visível além da chamada da função)
-        if (currentProcessedResponse.text.trim()) {
-          finalResponseText = (finalResponseText.trim() + '\n\n' + currentProcessedResponse.text.trim()).trim();
-        }
-        finalFunctionCalls.push(...currentProcessedResponse.calls);
-
-        iteration++;
-      } catch (error) {
-        console.error('❌ Erro na chamada de continuação:', error);
-        finalResponseText += '\n\n(Erro ao processar continuação da pesquisa)';
-        break;
-      }
+      const nextResponse = await callProvider(continuationMsg);
+      responseText = nextResponse.text;
+      toolCalls = nextResponse.toolCalls;
     }
 
     return {
       success: true,
       response: finalResponseText.trim(),
-      functionCalls: finalFunctionCalls,
+      functionCalls: allFunctionCalls,
       timestamp: Date.now()
     };
 
   } catch (error) {
     console.error('Erro ao processar mensagem:', error);
-    return {
-      success: false,
-      error: error.message || 'Erro interno do servidor'
-    };
+    return { success: false, error: error.message || 'Erro interno do servidor' };
   }
 });
 

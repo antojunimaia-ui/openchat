@@ -28,6 +28,7 @@
 </head>
 
 <body>
+    <div class="notification-container" id="notificationContainer"></div>
     <div class="app-container">
         <!-- Custom Titlebar -->
         <div class="titlebar">
@@ -423,6 +424,17 @@
                                 </svg>
                                 <span>Sobre</span>
                             </button>
+                            <button class="settings-nav-item" data-section="debug" id="nav-debug"
+                                style="display: none;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41">
+                                    </path>
+                                    <path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path>
+                                </svg>
+                                <span>Debug</span>
+                            </button>
                         </div>
                     </div>
 
@@ -640,6 +652,50 @@
                                             </svg>
                                             Testar Conexão
                                         </button>
+                                    </div>
+                                </div>
+                                <!-- Hugging Face API (Gerador de Imagens Grátis) -->
+                                <div class="api-config">
+                                    <div class="api-header">
+                                        <div class="api-info">
+                                            <div class="api-icon">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                                                </svg>
+                                            </div>
+                                            <div class="api-details">
+                                                <h4>Gerador de Imagens <span
+                                                        style="font-size: 11px; color:#4caf50">(Hugging Face /
+                                                        Grátis)</span></h4>
+                                                <span class="api-status" id="imagenStatus">Não configurado</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="api-form show" id="imagenForm">
+                                        <div class="form-group">
+                                            <label for="imagenApiKey">Chave/Token do Hugging Face (Necessário para gerar
+                                                imagens livremente)</label>
+                                            <div class="input-with-button">
+                                                <input type="password" id="imagenApiKey"
+                                                    placeholder="Insira seu Access Token do Hugging Face"
+                                                    class="api-input">
+                                                <button type="button" class="toggle-password-btn"
+                                                    data-target="imagenApiKey">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <p style="font-size: 11px; opacity: 0.7; margin-top: 4px;">Crie uma conta em
+                                                huggingface.co e gere um Access Token gratuitamente em Settings ->
+                                                Access Tokens.</p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1372,42 +1428,108 @@
                         <div class="settings-section" id="section-mcp">
                             <div class="panel-header">
                                 <h3>Servidores MCP</h3>
-                                <p class="panel-description">Gerencie as ferramentas e integrações de sistema da sua IA
-                                </p>
+                                <p class="panel-description">Gerencie as ferramentas e integrações que sua IA pode usar
+                                    localmente</p>
                             </div>
 
                             <div class="mcp-content">
-                                <div class="info-card">
-                                    <div class="info-icon">🔌</div>
-                                    <div class="info-content">
-                                        <h4>O que é MCP?</h4>
-                                        <p>Model Context Protocol (MCP) permite que sua IA comunique e interaja
-                                            localmente com o seu computador usando servidores de ferramentas que você
-                                            instalar.</p>
+                                <!-- Hero info card -->
+                                <div class="mcp-info-hero">
+                                    <div class="mcp-hero-icon">
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="1.5">
+                                            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                                        </svg>
                                     </div>
+                                    <div class="mcp-hero-text">
+                                        <h4>Model Context Protocol</h4>
+                                        <p>Conecte sua IA a ferramentas locais — sistema de arquivos, banco de dados,
+                                            Git, e muito mais. Cada servidor MCP expande suas capacidades nativamente.
+                                        </p>
+                                    </div>
+                                    <a href="#" class="mcp-hero-link"
+                                        onclick="window.openExternalLink('https://modelcontextprotocol.io')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                            <polyline points="15 3 21 3 21 9"></polyline>
+                                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                                        </svg>
+                                        Docs
+                                    </a>
                                 </div>
 
-                                <div class="mcp-servers-list" id="mcpServersList">
-                                    <p>Carregando servidores...</p>
+                                <!-- Servers list -->
+                                <div class="mcp-section-label">
+                                    <span>Servidores Instalados</span>
+                                    <span class="mcp-server-count" id="mcpServerCount">0</span>
                                 </div>
-                                <div class="form-group" style="margin-top:20px;">
-                                    <label class="config-label">Adicionar Novo Servidor MCP</label>
-                                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                                        <input type="text" id="mcpServerName" class="api-input"
-                                            placeholder="Nome do Servidor (ex: bash, everything, github)">
-                                        <input type="text" id="mcpServerCommand" class="api-input"
-                                            placeholder="Comando (ex: npx, node, python)">
-                                        <input type="text" id="mcpServerArgs" class="api-input"
-                                            placeholder="Argumentos (separe por vírgula, ex: -y,@modelcontextprotocol/server-postgres)">
-                                        <button type="button" class="test-api-btn" id="addMcpServerBtn"
-                                            style="margin-top: 10px;">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                            </svg>
-                                            Adicionar Servidor
-                                        </button>
+                                <div class="mcp-servers-list" id="mcpServersList">
+                                    <p style="color: var(--text-color-light); text-align:center; padding: 20px 0;">
+                                        Carregando servidores...</p>
+                                </div>
+
+                                <!-- Add server form -->
+                                <div class="mcp-add-server-card">
+                                    <div class="mcp-add-header">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                                        </svg>
+                                        <span>Adicionar Novo Servidor</span>
+                                    </div>
+                                    <div class="mcp-form-grid">
+                                        <div class="mcp-field">
+                                            <label class="mcp-field-label">Nome</label>
+                                            <input type="text" id="mcpServerName" class="api-input"
+                                                placeholder="ex: filesystem, postgres, github">
+                                        </div>
+                                        <div class="mcp-field">
+                                            <label class="mcp-field-label">Comando</label>
+                                            <input type="text" id="mcpServerCommand" class="api-input"
+                                                placeholder="ex: npx, node, python3, uvx">
+                                        </div>
+                                        <div class="mcp-field mcp-field-full">
+                                            <label class="mcp-field-label">Argumentos <span
+                                                    class="mcp-field-hint">(separados por vírgula)</span></label>
+                                            <input type="text" id="mcpServerArgs" class="api-input"
+                                                placeholder="ex: -y,@modelcontextprotocol/server-filesystem,/home/user">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="mcp-add-btn" id="addMcpServerBtn">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        </svg>
+                                        Adicionar Servidor
+                                    </button>
+                                </div>
+
+                                <!-- Quick install tips -->
+                                <div class="mcp-quick-tips">
+                                    <div class="mcp-tips-label">💡 Servidores populares</div>
+                                    <div class="mcp-chip-list">
+                                        <div class="mcp-chip"
+                                            onclick="document.getElementById('mcpServerName').value='filesystem';document.getElementById('mcpServerCommand').value='npx';document.getElementById('mcpServerArgs').value='-y,@modelcontextprotocol/server-filesystem,./'">
+                                            📁 Filesystem
+                                        </div>
+                                        <div class="mcp-chip"
+                                            onclick="document.getElementById('mcpServerName').value='git';document.getElementById('mcpServerCommand').value='uvx';document.getElementById('mcpServerArgs').value='mcp-server-git'">
+                                            🐙 Git
+                                        </div>
+                                        <div class="mcp-chip"
+                                            onclick="document.getElementById('mcpServerName').value='postgres';document.getElementById('mcpServerCommand').value='npx';document.getElementById('mcpServerArgs').value='-y,@modelcontextprotocol/server-postgres,postgresql://localhost/mydb'">
+                                            🐘 PostgreSQL
+                                        </div>
+                                        <div class="mcp-chip"
+                                            onclick="document.getElementById('mcpServerName').value='sqlite';document.getElementById('mcpServerCommand').value='uvx';document.getElementById('mcpServerArgs').value='mcp-server-sqlite,--db-path,./database.db'">
+                                            🗄️ SQLite
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1436,7 +1558,8 @@
                                         <h2 class="app-name-title">OpenChat</h2>
                                         <div class="version-badge-container">
                                             <span class="version-badge">v2.1.3</span>
-                                            <span class="build-tag">By Junior_7i</span>
+                                            <span class="build-tag" id="dev-name-click" style="cursor: pointer;">By
+                                                Junior_7i</span>
                                         </div>
                                         <p class="app-slogan">OpenChat é o espaço onde você pode dizer o que outras IAs
                                             simplesmente não permitem</p>
@@ -1473,6 +1596,93 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Debug Section -->
+                        <div class="settings-section" id="section-debug">
+                            <div class="panel-header">
+                                <h3>Configurações de Debug</h3>
+                                <p class="panel-description">Configurações experimentais e de desenvolvimento</p>
+                            </div>
+
+                            <div class="debug-content">
+                                <div class="config-group">
+                                    <label class="config-label">Efeitos Visuais e Temas (Forçar)</label>
+                                    <div class="toggle-options">
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="debugForceSnow" class="debug-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Forçar Efeito de Neve (Natal)</span>
+                                        </label>
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="debugForceNewYear" class="debug-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Forçar Mensagem de Ano Novo</span>
+                                        </label>
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="debugForceAurora" class="debug-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Manter Aurora Boreal Ativa</span>
+                                        </label>
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="debugForceStarry" class="debug-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Manter Céu Estrelado Ativo</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="config-group">
+                                    <label class="config-label">Notificações e Atualizações</label>
+                                    <div class="toggle-options">
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="debugForceUpdate" class="debug-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Simular Atualização Disponível</span>
+                                        </label>
+                                    </div>
+                                    <div class="debug-buttons-row"
+                                        style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <button type="button" class="action-btn-outline" id="testNotifySuccess"
+                                            style="font-size: 11px; padding: 6px 10px;">Sucesso</button>
+                                        <button type="button" class="action-btn-outline" id="testNotifyError"
+                                            style="font-size: 11px; padding: 6px 10px;">Erro</button>
+                                        <button type="button" class="action-btn-outline" id="testNotifyInfo"
+                                            style="font-size: 11px; padding: 6px 10px;">Info</button>
+                                        <button type="button" class="action-btn-outline" id="testNotifyWarning"
+                                            style="font-size: 11px; padding: 6px 10px; border-color: #f59e0b; color: #f59e0b;">Aviso</button>
+                                        <button type="button" class="action-btn-outline" id="testNotifyUpdate"
+                                            style="font-size: 11px; padding: 6px 10px;">Update Nova Versão</button>
+                                        <button type="button" class="action-btn-outline" id="testNotifyDownload"
+                                            style="font-size: 11px; padding: 6px 10px;">Update Baixado</button>
+                                    </div>
+                                </div>
+
+                                <div class="config-group">
+                                    <label class="config-label">Sistema & Debug</label>
+                                    <div class="toggle-options">
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="debugVerboseLogging" class="debug-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Logs Detalhados no Console</span>
+                                        </label>
+                                        <label class="toggle-option">
+                                            <input type="checkbox" id="debugShowIds" class="debug-checkbox">
+                                            <span class="toggle-checkmark"></span>
+                                            <span class="toggle-text">Mostrar IDs de Mensagens</span>
+                                        </label>
+                                    </div>
+                                    <div class="debug-buttons-row"
+                                        style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <button type="button" class="action-btn-outline" id="debugClearMemory"
+                                            style="font-size: 12px; padding: 6px 12px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444;">Limpar
+                                            Memórias</button>
+                                        <button type="button" class="action-btn-outline" id="debugResetSettings"
+                                            style="font-size: 12px; padding: 6px 12px; background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444;">Reset
+                                            de Fábrica</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1490,6 +1700,21 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Drag & Drop Overlay -->
+            <div class="drag-overlay" id="dragOverlay">
+                <div class="drag-content">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="12" y2="12"></line>
+                        <line x1="15" y1="15" x2="12" y2="12"></line>
+                    </svg>
+                    <h3>Solte o arquivo aqui</h3>
+                    <p>Suporta PDF e TXT (análise integrada)</p>
+                </div>
+            </div>
+
             <!-- Welcome Message -->
             <div class="welcome-message">
                 <h2 id="welcomeText">No que você está pensando hoje?</h2>
@@ -1733,60 +1958,18 @@
         </div>
     </div>
 
+    <script src="src/renderer/ui/SettingsUI.js"></script>
+    <script src="src/renderer/ui/SidebarUI.js"></script>
+    <script src="src/renderer/ui/ChatUI.js"></script>
+    <script src="src/renderer/ui/ArchitectUI.js"></script>
+    <script src="src/renderer/ui/ThemeUI.js"></script>
+    <script src="src/renderer/features/MemoryManager.js"></script>
+    <script src="src/renderer/features/VoiceManager.js"></script>
+    <script src="src/renderer/features/ThinkingManager.js"></script>
     <script src="renderer.js"></script>
     <script src="voice-call.js"></script>
 
-    <!-- Christmas Snow Check Script -->
-    <script>
-        // Immediate check for Christmas season
-        (function () {
-            const now = new Date();
-            const month = now.getMonth(); // 0 = January, 11 = December
-            const day = now.getDate();
-
-            console.log(`Script inline: Verificando época natalina - Mês: ${month}, Dia: ${day}`);
-
-            // Only December is Christmas season
-            const isChristmasSeason = (month === 11); // Only December
-            console.log(`Script inline: É época natalina? ${isChristmasSeason}`);
-
-            const snowContainer = document.getElementById('snowContainer');
-            if (snowContainer) {
-                if (isChristmasSeason) {
-                    console.log('Script inline: Mostrando container de neve');
-                    snowContainer.style.display = 'block';
-                } else {
-                    console.log('Script inline: Escondendo container de neve');
-                    snowContainer.style.display = 'none';
-                }
-            } else {
-                console.log('Script inline: Container de neve não encontrado');
-            }
-        })();
-
-        // Immediate check for New Year's Day
-        (function () {
-            const now = new Date();
-            const month = now.getMonth(); // 0 = January
-            const day = now.getDate();
-            const year = now.getFullYear();
-
-            console.log(`Script inline: Verificando Ano Novo - Mês: ${month}, Dia: ${day}, Ano: ${year}`);
-
-            const isNewYearsDay = (month === 0 && day === 1); // January 1st
-            console.log(`Script inline: É dia de Ano Novo? ${isNewYearsDay}`);
-
-            const welcomeText = document.getElementById('welcomeText');
-
-            if (isNewYearsDay && welcomeText) {
-                console.log('Script inline: Alterando texto para Ano Novo');
-                welcomeText.textContent = `OpenChat te deseja um Feliz ${year}! 🎉`;
-            } else if (welcomeText) {
-                console.log('Script inline: Mantendo texto padrão');
-                welcomeText.textContent = 'No que você está pensando hoje?';
-            }
-        })();
-    </script>
+    <!-- Handled by ThemeUI.js and SettingsUI.js -->
 </body>
 
 </html>

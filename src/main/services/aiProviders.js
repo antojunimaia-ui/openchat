@@ -1,154 +1,183 @@
-// Função para chamar a API do Gemini
-async function callGeminiAPI(apiConfig, messageData, systemPrompt, mainWindow) {
-    // Usar fetch nativo do Node.js (disponível no Electron 28+)
+// aiProviders.js — Chamadas para APIs de IA com suporte a Tool Calling nativo
+// Usa a API oficial de function calling de cada provider em vez de parsing por regex/texto.
 
-    console.log('Chamando Gemini API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
+// ─── Definição das Tools disponíveis ─────────────────────────────────────────
+
+/**
+ * Gera a lista de tools no formato esperado por cada provider.
+ * @param {'gemini'|'openai'} format
+ * @param {object[]} extraTools - Tools extras (MCP servers)
+ */
+function buildTools(format, extraTools = []) {
+    const coreDefs = [
+        {
+            name: 'save_memory',
+            description: 'Salva uma informação importante sobre o usuário na memória persistente. Use silenciosamente quando o usuário revelar informações pessoais relevantes.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    content: { type: 'string', description: 'Conteúdo da memória a salvar' },
+                    category: { type: 'string', enum: ['user_info', 'preferences', 'facts', 'important_events', 'general'], description: 'Categoria da memória' },
+                    importance: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Importância da memória' }
+                },
+                required: ['content', 'category', 'importance']
+            }
+        },
+        {
+            name: 'update_memory',
+            description: 'Atualiza o conteúdo de uma memória existente pelo seu ID.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    memory_id: { type: 'string', description: 'ID da memória a atualizar' },
+                    new_content: { type: 'string', description: 'Novo conteúdo da memória' }
+                },
+                required: ['memory_id', 'new_content']
+            }
+        },
+        {
+            name: 'web_search',
+            description: 'Pesquisa informações na internet. Use quando precisar de dados atuais, notícias ou links sobre um tema. PARE sua resposta após chamar esta função.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string', description: 'Termos de busca' }
+                },
+                required: ['query']
+            }
+        },
+        {
+            name: 'web_scrape',
+            description: 'Lê o conteúdo de texto de uma página web específica. PARE sua resposta após chamar esta função.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    url: { type: 'string', description: 'URL da página a ser lida' }
+                },
+                required: ['url']
+            }
+        },
+        {
+            name: 'get_architect_document',
+            description: 'Lê o documento atual do Modo Arquiteto. PARE sua resposta imediatamente após chamar esta função.',
+            parameters: { type: 'object', properties: {} }
+        },
+        {
+            name: 'update_architect_document',
+            description: 'Atualiza o conteúdo completo do documento do Modo Arquiteto com o novo texto fornecido.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    new_content: { type: 'string', description: 'Conteúdo completo e atualizado do documento' }
+                },
+                required: ['new_content']
+            }
+        }
+    ];
+
+    // Combinar tools nativas com extras vindas do MCP
+    const allDefs = [...coreDefs, ...extraTools];
+
+    if (format === 'gemini') {
+        return [{
+            functionDeclarations: allDefs.map(t => ({
+                name: t.name,
+                description: t.description,
+                parameters: t.parameters
+            }))
+        }];
+    }
+
+    // Formato OpenAI-compatible (Mistral, OpenRouter, ZAI)
+    return allDefs.map(t => ({
+        type: 'function',
+        function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters
+        }
+    }));
+}
+
+// ─── Gemini ───────────────────────────────────────────────────────────────────
+
+async function callGeminiAPI(apiConfig, messageData, systemPrompt, mainWindow, extraTools = []) {
+    console.log('Chamando Gemini API com system prompt. Tamanho:', systemPrompt?.length ?? 0, 'caracteres');
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${apiConfig.model}:generateContent?key=${apiConfig.apiKey}`;
 
-    // Build conversation history
     const contents = [];
 
-    // Add system prompt as first message
-    if (systemPrompt) {
-        contents.push({
-            parts: [{ text: systemPrompt }]
-        });
-    }
-
-    // Add conversation history
-    if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
+    if (messageData.conversationHistory?.length > 0) {
         messageData.conversationHistory.forEach(msg => {
             if (msg.type === 'user') {
+                contents.push({ role: 'user', parts: [{ text: msg.text }] });
+            } else if (msg.type === 'bot') {
+                contents.push({ role: 'model', parts: [{ text: msg.text }] });
+            } else if (msg.role === 'tool') {
+                // Tool result message (used during multi-turn tool calling)
                 contents.push({
                     role: 'user',
-                    parts: [{ text: msg.text }]
-                });
-            } else if (msg.type === 'bot') {
-                contents.push({
-                    role: 'model',
-                    parts: [{ text: msg.text }]
+                    parts: [{ functionResponse: { name: msg.name, response: { result: msg.content } } }]
                 });
             }
         });
     }
 
-    // Add current user message
-    contents.push({
-        role: 'user',
-        parts: [{ text: messageData.text }]
-    });
+    contents.push({ role: 'user', parts: [{ text: messageData.text }] });
 
     const requestBody = {
-        contents: contents,
-        generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-        },
+        system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+        contents,
+        tools: buildTools('gemini', extraTools),
+        generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 4096 },
         safetySettings: [
-            {
-                category: "HARM_CATEGORY_HARASSMENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            },
-            {
-                category: "HARM_CATEGORY_HATE_SPEECH",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            }
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
         ]
     };
 
-    const response = await fetch(url, {
+    const res = await fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Erro da API Gemini: ${errorData.error?.message || response.statusText}`);
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(`Erro da API Gemini: ${err.error?.message || res.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await res.json();
+    const candidate = data.candidates?.[0];
+    if (!candidate?.content) throw new Error('Resposta inválida da API Gemini');
 
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        throw new Error('Resposta inválida da API Gemini');
-    }
+    const parts = candidate.content.parts || [];
+    const text = parts.filter(p => p.text).map(p => p.text).join('');
+    const toolCalls = parts
+        .filter(p => p.functionCall)
+        .map(p => ({
+            id: `gemini-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name: p.functionCall.name,
+            arguments: p.functionCall.args || {}
+        }));
 
-    return data.candidates[0].content.parts[0].text;
+    return { text, toolCalls };
 }
 
-// Função para chamar a API do Mistral com streaming
-async function callMistralAPI(apiConfig, messageData, systemPrompt, mainWindow) {
-    // Usar fetch nativo do Node.js (disponível no Electron 28+)
+// ─── Helpers para Streaming (OpenAI-compatible) ───────────────────────────────
 
-    console.log('Chamando Mistral API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
-
-    const url = 'https://api.mistral.ai/v1/chat/completions';
-
-    // Build conversation messages
-    const messages = [];
-
-    // Add system prompt
-    if (systemPrompt) {
-        messages.push({
-            role: 'system',
-            content: systemPrompt
-        });
-    }
-
-    // Add conversation history
-    if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
-        messageData.conversationHistory.forEach(msg => {
-            if (msg.type === 'user') {
-                messages.push({
-                    role: 'user',
-                    content: msg.text
-                });
-            } else if (msg.type === 'bot') {
-                messages.push({
-                    role: 'assistant',
-                    content: msg.text
-                });
-            }
-        });
-    }
-
-    // Add current user message
-    messages.push({
-        role: 'user',
-        content: messageData.text
-    });
-
-    const requestBody = {
-        model: apiConfig.model,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2048,
-        stream: true
-    };
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiConfig.apiKey}`
-        },
-        body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Erro da API Mistral: ${errorData.error?.message || response.statusText}`);
-    }
-
-    // Handle streaming response
+/**
+ * Lê um streaming SSE e retorna { text, toolCalls }.
+ * toolCalls são montados a partir dos deltas acumulados.
+ */
+async function readStreamingResponse(response, mainWindow) {
     return new Promise(async (resolve, reject) => {
-        let fullResponse = '';
-        let buffer = ''; // Buffer para acumular linhas parciais
+        let fullText = '';
+        let buffer = '';
+
+        // Acumula tool calls por índice
+        const toolCallAccumulator = {};
 
         try {
             const reader = response.body.getReader();
@@ -156,340 +185,211 @@ async function callMistralAPI(apiConfig, messageData, systemPrompt, mainWindow) 
 
             while (true) {
                 const { done, value } = await reader.read();
+                if (done) break;
 
-                if (done) {
-                    if (fullResponse) {
-                        resolve(fullResponse);
-                    } else {
-                        reject(new Error('Resposta vazia da API Mistral'));
-                    }
-                    break;
-                }
-
-                // Decodificar o chunk e adicionar ao buffer
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
-
-                // Processar linhas completas do buffer
+                buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
-
-                // A última linha pode estar incompleta, então guardamos no buffer
                 buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
+                    if (!line.startsWith('data: ')) continue;
+                    const data = line.slice(6).trim();
+                    if (data === '[DONE]') {
+                        const toolCalls = Object.values(toolCallAccumulator).map(tc => ({
+                            id: tc.id,
+                            name: tc.function.name,
+                            arguments: (() => {
+                                try { return JSON.parse(tc.function.arguments); }
+                                catch { return {}; }
+                            })()
+                        }));
+                        resolve({ text: fullText, toolCalls });
+                        return;
+                    }
 
-                        if (data === '[DONE]') {
-                            resolve(fullResponse);
-                            return;
+                    try {
+                        const parsed = JSON.parse(data);
+                        const delta = parsed.choices?.[0]?.delta;
+                        if (!delta) continue;
+
+                        // Texto normal
+                        if (delta.content) {
+                            fullText += delta.content;
+                            if (mainWindow) mainWindow.webContents.send('streaming-update', delta.content);
                         }
 
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
-                                const content = parsed.choices[0].delta.content;
-                                fullResponse += content;
-
-                                // Send streaming update to renderer
-                                if (mainWindow) {
-                                    mainWindow.webContents.send('streaming-update', content);
+                        // Tool calls via delta
+                        if (delta.tool_calls) {
+                            for (const tc of delta.tool_calls) {
+                                const idx = tc.index ?? 0;
+                                if (!toolCallAccumulator[idx]) {
+                                    toolCallAccumulator[idx] = {
+                                        id: tc.id || `tc-${idx}`,
+                                        function: { name: tc.function?.name || '', arguments: '' }
+                                    };
                                 }
+                                if (tc.id) toolCallAccumulator[idx].id = tc.id;
+                                if (tc.function?.name) toolCallAccumulator[idx].function.name = tc.function.name;
+                                if (tc.function?.arguments) toolCallAccumulator[idx].function.arguments += tc.function.arguments;
                             }
-                        } catch (e) {
-                            // Ignore parsing errors for incomplete chunks
-                            console.log('Erro ao parsear chunk (pode ser incompleto):', e.message);
                         }
+                    } catch {
+                        // chunk parcial, ignorar
                     }
                 }
             }
 
-            // Send completion event
-            if (mainWindow) {
-                mainWindow.webContents.send('streaming-complete');
-            }
+            // Stream terminou sem [DONE]
+            const toolCalls = Object.values(toolCallAccumulator).map(tc => ({
+                id: tc.id,
+                name: tc.function.name,
+                arguments: (() => { try { return JSON.parse(tc.function.arguments); } catch { return {}; } })()
+            }));
+            resolve({ text: fullText, toolCalls });
         } catch (error) {
             reject(error);
+        } finally {
+            if (mainWindow) mainWindow.webContents.send('streaming-complete');
         }
     });
 }
 
-// Função para chamar a API do Open Router com streaming
-async function callOpenRouterAPI(apiConfig, messageData, systemPrompt, mainWindow) {
-    console.log('Chamando Open Router API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
+// ─── Mistral ──────────────────────────────────────────────────────────────────
 
-    const url = 'https://openrouter.ai/api/v1/chat/completions';
+async function callMistralAPI(apiConfig, messageData, systemPrompt, mainWindow, extraTools = []) {
+    console.log('Chamando Mistral API com system prompt. Tamanho:', systemPrompt?.length ?? 0, 'caracteres');
 
-    // Build conversation messages
     const messages = [];
+    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
 
-    // Add system prompt
-    if (systemPrompt) {
-        messages.push({
-            role: 'system',
-            content: systemPrompt
-        });
-    }
-
-    // Add conversation history
-    if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
+    if (messageData.conversationHistory?.length > 0) {
         messageData.conversationHistory.forEach(msg => {
-            if (msg.type === 'user') {
-                messages.push({
-                    role: 'user',
-                    content: msg.text
-                });
-            } else if (msg.type === 'bot') {
-                messages.push({
-                    role: 'assistant',
-                    content: msg.text
-                });
-            }
+            if (msg.type === 'user') messages.push({ role: 'user', content: msg.text });
+            else if (msg.type === 'bot') messages.push({ role: 'assistant', content: msg.text });
+            else if (msg.role === 'tool') messages.push({ role: 'tool', tool_call_id: msg.tool_call_id, content: JSON.stringify(msg.content) });
         });
     }
 
-    // Add current user message
-    messages.push({
-        role: 'user',
-        content: messageData.text
+    messages.push({ role: 'user', content: messageData.text });
+
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiConfig.apiKey}`
+        },
+        body: JSON.stringify({
+            model: apiConfig.model,
+            messages,
+            tools: buildTools('openai', extraTools),
+            tool_choice: 'auto',
+            temperature: 0.7,
+            max_tokens: 4096,
+            stream: true
+        })
     });
 
-    const requestBody = {
-        model: apiConfig.model || 'google/gemini-2.0-flash-001',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 4096,
-        stream: true
-    };
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(`Erro da API Mistral: ${err.error?.message || res.statusText}`);
+    }
 
-    const response = await fetch(url, {
+    return readStreamingResponse(res, mainWindow);
+}
+
+// ─── OpenRouter ───────────────────────────────────────────────────────────────
+
+async function callOpenRouterAPI(apiConfig, messageData, systemPrompt, mainWindow, extraTools = []) {
+    console.log('Chamando Open Router API com system prompt. Tamanho:', systemPrompt?.length ?? 0, 'caracteres');
+
+    const messages = [];
+    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+
+    if (messageData.conversationHistory?.length > 0) {
+        messageData.conversationHistory.forEach(msg => {
+            if (msg.type === 'user') messages.push({ role: 'user', content: msg.text });
+            else if (msg.type === 'bot') messages.push({ role: 'assistant', content: msg.text });
+            else if (msg.role === 'tool') messages.push({ role: 'tool', tool_call_id: msg.tool_call_id, content: JSON.stringify(msg.content) });
+        });
+    }
+
+    messages.push({ role: 'user', content: messageData.text });
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiConfig.apiKey}`,
-            'HTTP-Referer': 'https://openchat.ai', // Optional
-            'X-Title': 'OpenChat', // Optional
+            'HTTP-Referer': 'https://openchat.ai',
+            'X-Title': 'OpenChat'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+            model: apiConfig.model || 'google/gemini-2.0-flash-001',
+            messages,
+            tools: buildTools('openai', extraTools),
+            tool_choice: 'auto',
+            temperature: 0.7,
+            max_tokens: 4096,
+            stream: true
+        })
     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Erro da API Open Router: ${errorData.error?.message || response.statusText}`);
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(`Erro da API Open Router: ${err.error?.message || res.statusText}`);
     }
 
-    // Handle streaming response
-    return new Promise(async (resolve, reject) => {
-        let fullResponse = '';
-        let buffer = '';
-
-        try {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-
-                if (done) {
-                    if (fullResponse) {
-                        resolve(fullResponse);
-                    } else {
-                        reject(new Error('Resposta vazia da API Open Router'));
-                    }
-                    break;
-                }
-
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
-
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-
-                        if (data === '[DONE]') {
-                            resolve(fullResponse);
-                            return;
-                        }
-
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content) {
-                                const content = parsed.choices[0].delta.content;
-                                fullResponse += content;
-
-                                if (mainWindow) {
-                                    mainWindow.webContents.send('streaming-update', content);
-                                }
-                            }
-                        } catch (e) {
-                            // Ignore parsing errors for incomplete chunks
-                            // console.log('Erro ao parsear chunk Open Router:', e.message);
-                        }
-                    }
-                }
-            }
-
-            if (mainWindow) {
-                mainWindow.webContents.send('streaming-complete');
-            }
-        } catch (error) {
-            reject(error);
-        }
-    });
+    return readStreamingResponse(res, mainWindow);
 }
 
-// Função para chamar a API do Z.AI GLM com streaming
-async function callZaiAPI(apiConfig, messageData, systemPrompt, mainWindow) {
-    console.log('Chamando Z.AI GLM API com system prompt. Tamanho:', systemPrompt ? systemPrompt.length : 0, 'caracteres');
+// ─── Z.AI (GLM) ───────────────────────────────────────────────────────────────
 
-    const url = 'https://api.z.ai/api/paas/v4/chat/completions';
+async function callZaiAPI(apiConfig, messageData, systemPrompt, mainWindow, extraTools = []) {
+    console.log('Chamando Z.AI GLM API com system prompt. Tamanho:', systemPrompt?.length ?? 0, 'caracteres');
 
-    // Build conversation messages
     const messages = [];
+    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
 
-    // Add system prompt
-    if (systemPrompt) {
-        messages.push({
-            role: 'system',
-            content: systemPrompt
-        });
-    }
-
-    // Add conversation history
-    if (messageData.conversationHistory && messageData.conversationHistory.length > 0) {
+    if (messageData.conversationHistory?.length > 0) {
         messageData.conversationHistory.forEach(msg => {
-            if (msg.type === 'user') {
-                messages.push({
-                    role: 'user',
-                    content: msg.text
-                });
-            } else if (msg.type === 'bot') {
-                messages.push({
-                    role: 'assistant',
-                    content: msg.text
-                });
-            }
+            if (msg.type === 'user') messages.push({ role: 'user', content: msg.text });
+            else if (msg.type === 'bot') messages.push({ role: 'assistant', content: msg.text });
+            else if (msg.role === 'tool') messages.push({ role: 'tool', tool_call_id: msg.tool_call_id, content: JSON.stringify(msg.content) });
         });
     }
 
-    // Add current user message
-    messages.push({
-        role: 'user',
-        content: messageData.text
-    });
+    messages.push({ role: 'user', content: messageData.text });
 
-    const requestBody = {
-        model: apiConfig.model,
-        messages: messages,
-        thinking: {
-            type: 'enabled'  // Enable thinking mode for better reasoning
-        },
-        temperature: 0.7,
-        max_tokens: 4096,
-        stream: true
-    };
-
-    const response = await fetch(url, {
+    const res = await fetch('https://api.z.ai/api/paas/v4/chat/completions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiConfig.apiKey}`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+            model: apiConfig.model,
+            messages,
+            tools: buildTools('openai', extraTools),
+            tool_choice: 'auto',
+            thinking: { type: 'enabled' },
+            temperature: 0.7,
+            max_tokens: 4096,
+            stream: true
+        })
     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Erro da API Z.AI: ${errorData.error?.message || response.statusText}`);
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(`Erro da API Z.AI: ${err.error?.message || res.statusText}`);
     }
 
-    // Handle streaming response
-    return new Promise(async (resolve, reject) => {
-        let fullResponse = '';
-        let buffer = ''; // Buffer para acumular linhas parciais
-
-        try {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-
-                if (done) {
-                    if (fullResponse) {
-                        resolve(fullResponse);
-                    } else {
-                        reject(new Error('Resposta vazia da API Z.AI'));
-                    }
-                    break;
-                }
-
-                // Decodificar o chunk e adicionar ao buffer
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
-
-                // Processar linhas completas do buffer
-                const lines = buffer.split('\n');
-
-                // A última linha pode estar incompleta, então guardamos no buffer
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-
-                        if (data === '[DONE]') {
-                            resolve(fullResponse);
-                            return;
-                        }
-
-                        try {
-                            const parsed = JSON.parse(data);
-
-                            // Z.AI pode retornar reasoning_content e content separadamente
-                            if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                                const delta = parsed.choices[0].delta;
-
-                                // Ignorar reasoning_content (pensamento interno) e só usar content (resposta final)
-                                if (delta.content) {
-                                    const content = delta.content;
-                                    fullResponse += content;
-
-                                    // Debug: Ver se a tag está sendo formada
-                                    if (fullResponse.includes('[FUNCTION_CALL]') && !fullResponse.includes('[/FUNCTION_CALL]')) {
-                                        // console.log('Function call em formação...');
-                                    }
-
-                                    // Send streaming update to renderer
-                                    if (mainWindow) {
-                                        mainWindow.webContents.send('streaming-update', content);
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            // Ignore parsing errors for incomplete chunks
-                            console.log('Erro ao parsear chunk Z.AI (pode ser incompleto):', e.message);
-                        }
-                    }
-                }
-            }
-
-            // Send completion event
-            if (mainWindow) {
-                mainWindow.webContents.send('streaming-complete');
-            }
-        } catch (error) {
-            reject(error);
-        }
-    });
+    return readStreamingResponse(res, mainWindow);
 }
 
 module.exports = {
     callGeminiAPI,
     callMistralAPI,
     callZaiAPI,
-    callOpenRouterAPI
+    callOpenRouterAPI,
+    buildTools
 };

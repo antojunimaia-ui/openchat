@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getMcpServers: () => ipcRenderer.invoke('get-mcp-servers'),
   saveMcpServers: (servers) => ipcRenderer.invoke('save-mcp-servers', servers),
 
+  // New features
+  parseFile: (filePath) => ipcRenderer.invoke('parse-file', filePath),
+  generateImage: (prompt, apiKey) => ipcRenderer.invoke('generate-image', prompt, apiKey),
+
   // Listeners para eventos
   onMessageReceived: (callback) => {
     ipcRenderer.on('message-received', callback);
